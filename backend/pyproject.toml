@@ -12,5 +12,6 @@ dependencies = [
     "scikit-learn",
     "joblib",
     "pydantic",
-    "python-multipart"
+    "python-multipart",
+    "psycopg[binary]"
 ]
