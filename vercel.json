@@ -6,10 +6,10 @@
       "framework": "vite"
     },
     "backend": {
-  "root": "backend/",
-  "framework": "fastapi",
-  "entrypoint": "main:app"
-}
+      "root": "backend/",
+      "framework": "fastapi",
+      "entrypoint": "main:app"
+    }
   },
   "rewrites": [
     {

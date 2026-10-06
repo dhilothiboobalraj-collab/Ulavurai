@@ -1,0 +1,16 @@
+[project]
+name = "seasonsense-ai-backend"
+version = "1.0.0"
+description = "SeasonSense AI FastAPI backend"
+requires-python = ">=3.12,<3.13"
+
+dependencies = [
+    "fastapi",
+    "uvicorn",
+    "pandas",
+    "numpy",
+    "scikit-learn",
+    "joblib",
+    "pydantic",
+    "python-multipart"
+]
