@@ -6,9 +6,9 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from backend.api import farmer_guide, history, model, prediction
-from backend.database import get_database
-from backend.services.predictor import load_predictor, predictor_status
+from api import farmer_guide, history, model, prediction
+from database import get_database
+from services.predictor import load_predictor, predictor_status
 
 
 @asynccontextmanager

@@ -5,8 +5,8 @@ import sqlite3
 from pathlib import Path
 from typing import Any
 
-from backend.database import PredictionDatabase, get_database
-from backend.schema import FEATURES
+from database import PredictionDatabase, get_database
+from schema import FEATURES
 
 
 def _value(row: sqlite3.Row, key: str, default: Any) -> Any:

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from backend.schema import DISPLAY_NAMES
+from schema import DISPLAY_NAMES
 
 
 def build_explanation(

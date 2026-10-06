@@ -9,8 +9,8 @@ import joblib
 import numpy as np
 import pandas as pd
 
-from backend.services.explanation import build_explanation
-from backend.schema import (
+from services.explanation import build_explanation
+from schema import (
     DISPLAY_NAMES,
     ENVIRONMENT_FEATURES,
     FEATURES,

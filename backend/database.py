@@ -10,7 +10,7 @@ from typing import Any, Generator
 
 import psycopg
 
-from backend.schema import FEATURES
+from schema import FEATURES
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DATABASE_PATH = PROJECT_ROOT / "predictions.db"

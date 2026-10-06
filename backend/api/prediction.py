@@ -5,9 +5,9 @@ from typing import Literal
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from backend.database import DatabaseError, PredictionDatabase, get_database
-from backend.services.predictor import PredictorError
-from backend.services.recommendation import recommendation_service
+from database import DatabaseError, PredictionDatabase, get_database
+from services.predictor import PredictorError
+from services.recommendation import recommendation_service
 
 router = APIRouter(tags=["prediction"])
 

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 
-from backend.database import DatabaseError, PredictionDatabase, get_database
+from database import DatabaseError, PredictionDatabase, get_database
 
 router = APIRouter(prefix="/history", tags=["history"])
 

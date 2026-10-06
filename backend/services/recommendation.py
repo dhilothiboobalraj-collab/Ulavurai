@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from backend.services.predictor import get_predictor
+from services.predictor import get_predictor
 
 
 class RecommendationService:

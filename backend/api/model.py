@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException
 
-from backend.services.predictor import PredictorError, get_predictor
+from services.predictor import PredictorError, get_predictor
 
 router = APIRouter(prefix="/model", tags=["model"])
 crops_router = APIRouter(tags=["model"])

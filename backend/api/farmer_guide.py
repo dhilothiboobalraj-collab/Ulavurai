@@ -3,12 +3,12 @@ from typing import Literal
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, ConfigDict, field_validator
 
-from backend.database import DatabaseError, PredictionDatabase, get_database
-from backend.schema import FEATURES
-from backend.services.predictor import PredictorError
-from backend.services.recommendation import recommendation_service
-from backend.api.prediction import PredictionInput
-from backend.services.farmer_crop_recommender import farmer_crop_recommender
+from database import DatabaseError, PredictionDatabase, get_database
+from schema import FEATURES
+from services.predictor import PredictorError
+from services.recommendation import recommendation_service
+from api.prediction import PredictionInput
+from services.farmer_crop_recommender import farmer_crop_recommender
 
 router = APIRouter(prefix="/farmer-guide", tags=["farmer guide"])
 
