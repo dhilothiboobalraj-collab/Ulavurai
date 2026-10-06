@@ -17,7 +17,7 @@ from schema import (
     SOIL_FEATURES,
 )
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
 MODEL_PATH = PROJECT_ROOT / "models" / "crop_recommendation.joblib"
 METRICS_PATH = PROJECT_ROOT / "models" / "metrics.json"
 DATASET_PATH = PROJECT_ROOT / "datasets" / "Crop_recommendation.csv"
