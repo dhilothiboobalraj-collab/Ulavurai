@@ -98,40 +98,34 @@ development. Enable email confirmation under the email provider settings if
 you want verification links; signup displays a verification notice until the
 user confirms. The auth redirect returns to the app root.
 
-For Vercel, keep the project root at the repository root. The root
-`vercel.json` defines two services: the Vite frontend in `frontend/` and the
-FastAPI backend in `backend/`. Vercel routes `/api/*` to the backend and all
-other paths to the frontend; `frontend/vercel.json` provides the React Router
-fallback. Do not replace this with a legacy `builds` configuration or add an
-`api/index.py` entrypoint.
+Deploy the React frontend to Vercel and the FastAPI backend to Render as
+separate services. In Vercel, set the project root directory to `frontend`,
+the build command to `npm run build`, and the output directory to `dist`.
+`frontend/vercel.json` provides the React Router fallback for direct
+navigation and page refreshes.
 
-Set the frontend's Production environment variables in Vercel:
+Set these Production environment variables in Vercel:
 
 ```text
 VITE_SUPABASE_URL=https://YOUR_PROJECT_ID.supabase.co
 VITE_SUPABASE_PUBLISHABLE_KEY=YOUR_SUPABASE_PUBLISHABLE_KEY
+VITE_API_BASE_URL=https://YOUR_RENDER_SERVICE.onrender.com
 ```
 
-Leave `VITE_API_BASE_URL` unset for the same-origin deployment; the production
-frontend defaults to `/api`. Set `SUPABASE_URL`,
-`SUPABASE_PUBLISHABLE_KEY`, and `DATABASE_URL` for the backend service.
-`DATABASE_URL` must point to a hosted PostgreSQL database because Vercel does
-not provide persistent local SQLite storage. Keep the PostgreSQL URL and
-Supabase values in Vercel's server-side environment variables, never in
-`VITE_*` variables.
+In Render, create a Docker web service from this repository using the root
+`Dockerfile`. Set `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`,
+`APP_ENV=production`, and `CORS_ALLOWED_ORIGINS` to the exact HTTPS Vercel
+frontend origin. Set `DATABASE_URL` to a hosted PostgreSQL connection string
+for persistent prediction history; otherwise the container's local SQLite
+file may not persist between deployments. Do not put database credentials or
+Supabase secrets in Vercel's `VITE_*` variables.
 
-For a separately hosted frontend, set `VITE_API_BASE_URL` to the HTTPS backend
-URL including `/api`, and configure `CORS_ALLOWED_ORIGINS` on the backend with
-the exact HTTPS frontend origin. Same-origin Vercel deployments do not need a
-CORS allowlist. The public health endpoint and API documentation are available
-at `/api/health` and `/api/docs`; protected operations require a Supabase
-session.
-
-The frontend uses `npm run build` and outputs `frontend/dist`. The backend
-service uses `backend/pyproject.toml` for its Python dependencies and
-`main:app` as its FastAPI entrypoint. The Vercel service configuration and
-actual production deployment must still be verified against the linked Vercel
-project and its environment settings.
+The browser calls the Render backend directly at the configured origin (for
+example, `https://YOUR_RENDER_SERVICE.onrender.com/health`); API paths do not
+use an `/api` prefix on Render. Interactive API documentation is available at
+`/docs`. Protected operations require a Supabase session. Verify the deployed
+health endpoint, sign-in, and authenticated prediction/history flows against
+your actual hosting configuration.
 
 Existing local history in `predictions.db` is not copied automatically. To
 preserve it, run the migration from the project root on a machine that can
@@ -153,20 +147,21 @@ docker build -t seasonsense-api .
 ```
 
 Configure `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `APP_ENV=production`,
-`CORS_ALLOWED_ORIGINS`, and `PORT` in the backend host. `PORT` is supplied by
-many container hosts; the image defaults to port 8000 when it is absent. Set
-`CORS_ALLOWED_ORIGINS` to the exact HTTPS origin of the deployed frontend, with
-no path or wildcard. Production startup fails if CORS origins are missing or
-include `*`. Point the Vercel `VITE_API_BASE_URL` variable to the backend's
-public HTTPS URL.
+`CORS_ALLOWED_ORIGINS`, and `DATABASE_URL` in the backend host. `PORT` is
+supplied by many container hosts; the image defaults to port 8000 when it is
+absent. Set `CORS_ALLOWED_ORIGINS` to the exact HTTPS origin of the deployed
+frontend, with no path or wildcard. Production startup fails if CORS origins
+are missing or include `*`. Point the Vercel `VITE_API_BASE_URL` variable to
+the backend's public HTTPS URL.
 
 The container stores history at `/data/predictions.db` by default. Attach a
 persistent writable disk at `/data` to preserve history across restarts. SQLite
 is appropriate only for one backend instance with persistent local storage;
 use a managed database before scaling to multiple instances or using ephemeral
 storage. `DATABASE_PATH` can override the SQLite file path if the host mounts
-persistent storage elsewhere. Vercel does not provide the backend with access
-to a local SQLite file.
+persistent storage elsewhere. Render's ephemeral filesystem does not provide
+durable history storage without a persistent disk; hosted PostgreSQL is
+recommended.
 
 ## Existing model artifacts
 
