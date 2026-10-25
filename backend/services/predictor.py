@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 import json
+<<<<<<< HEAD
 import logging
+=======
+>>>>>>> 1e78fbc7c314b401cd6d1fd5b4ad02bbbf8f911e
 import pickle
 from pathlib import Path
 from typing import Any
@@ -10,19 +13,31 @@ import joblib
 import numpy as np
 import pandas as pd
 
+<<<<<<< HEAD
 from backend.services.explanation import build_explanation
 from backend.schema import (
+=======
+from services.explanation import build_explanation
+from schema import (
+>>>>>>> 1e78fbc7c314b401cd6d1fd5b4ad02bbbf8f911e
     DISPLAY_NAMES,
     ENVIRONMENT_FEATURES,
     FEATURES,
     SOIL_FEATURES,
 )
 
+<<<<<<< HEAD
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 MODEL_PATH = PROJECT_ROOT / "models" / "crop_recommendation.joblib"
 METRICS_PATH = PROJECT_ROOT / "models" / "metrics.json"
 DATASET_PATH = PROJECT_ROOT / "datasets" / "Crop_recommendation.csv"
 logger = logging.getLogger(__name__)
+=======
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+MODEL_PATH = PROJECT_ROOT / "models" / "crop_recommendation.joblib"
+METRICS_PATH = PROJECT_ROOT / "models" / "metrics.json"
+DATASET_PATH = PROJECT_ROOT / "datasets" / "Crop_recommendation.csv"
+>>>>>>> 1e78fbc7c314b401cd6d1fd5b4ad02bbbf8f911e
 
 
 class PredictorError(RuntimeError):
@@ -227,7 +242,10 @@ def load_predictor() -> None:
         _load_error = None
     except PredictorError as exc:
         _load_error = str(exc)
+<<<<<<< HEAD
         logger.error("Could not load the crop recommendation model: %s", exc)
+=======
+>>>>>>> 1e78fbc7c314b401cd6d1fd5b4ad02bbbf8f911e
 
 
 def get_predictor() -> CropPredictor:
@@ -243,10 +261,15 @@ def get_predictor() -> CropPredictor:
 def predictor_status() -> dict[str, Any]:
     try:
         get_predictor()
+<<<<<<< HEAD
     except PredictorError:
         return {
             "status": "not_ready",
             "model_loaded": False,
             "error": "The crop recommendation model is temporarily unavailable.",
         }
+=======
+    except PredictorError as exc:
+        return {"status": "not_ready", "model_loaded": False, "error": str(exc)}
+>>>>>>> 1e78fbc7c314b401cd6d1fd5b4ad02bbbf8f911e
     return {"status": "ok", "model_loaded": True}

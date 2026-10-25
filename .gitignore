@@ -1,7 +1,18 @@
 __pycache__/
 *.py[cod]
 .venv/
+<<<<<<< HEAD
 frontend/node_modules/
 frontend/dist/
 frontend/.env.local
 predictions.db
+=======
+models/*.joblib
+!models/crop_recommendation.joblib
+frontend/node_modules/
+frontend/dist/
+predictions.db
+.env
+.env.*
+!.env.example
+>>>>>>> 1e78fbc7c314b401cd6d1fd5b4ad02bbbf8f911e

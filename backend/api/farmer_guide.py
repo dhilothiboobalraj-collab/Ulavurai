@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import logging
 import sqlite3
 from typing import Literal
@@ -14,6 +15,21 @@ from backend.api.prediction import PredictionInput
 
 router = APIRouter(prefix="/farmer-guide", tags=["farmer guide"])
 logger = logging.getLogger(__name__)
+=======
+from typing import Literal
+
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel, ConfigDict, field_validator
+
+from database import DatabaseError, PredictionDatabase, get_database
+from schema import FEATURES
+from services.predictor import PredictorError
+from services.recommendation import recommendation_service
+from api.prediction import PredictionInput
+from services.farmer_crop_recommender import farmer_crop_recommender
+
+router = APIRouter(prefix="/farmer-guide", tags=["farmer guide"])
+>>>>>>> 1e78fbc7c314b401cd6d1fd5b4ad02bbbf8f911e
 
 LANGUAGES = ("ta", "en")
 SOIL_CHOICES = ("red_loam", "black", "clay", "sandy", "unknown")
@@ -68,9 +84,14 @@ TAMIL_NADU_DISTRICTS = {
 }
 
 
+<<<<<<< HEAD
 class FarmerGuideInput(BaseModel):
     model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
 
+=======
+class FarmerGuideSelections(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+>>>>>>> 1e78fbc7c314b401cd6d1fd5b4ad02bbbf8f911e
     language: Literal["ta", "en"]
     district: str
     soil_choice: Literal["red_loam", "black", "clay", "sandy", "unknown"]
@@ -79,7 +100,10 @@ class FarmerGuideInput(BaseModel):
         "delayed_rain", "heavy_rain", "heat_risk", "pest_risk", "normal"
     ]
     farmer_goal: Literal["safe", "profit", "low_water", "short_duration"]
+<<<<<<< HEAD
     model_inputs: PredictionInput | None = None
+=======
+>>>>>>> 1e78fbc7c314b401cd6d1fd5b4ad02bbbf8f911e
 
     @field_validator("district")
     @classmethod
@@ -90,10 +114,55 @@ class FarmerGuideInput(BaseModel):
         return normalized
 
 
+<<<<<<< HEAD
 @router.post("/predict")
 def farmer_predict(
     request: FarmerGuideInput,
     user_id: str = Depends(require_authenticated_user),
+=======
+class FarmerGuideInput(FarmerGuideSelections):
+    model_inputs: PredictionInput | None = None
+
+
+@router.post("/recommend")
+def farmer_basic_recommend(
+    request: FarmerGuideSelections,
+    database: PredictionDatabase = Depends(get_database),
+) -> dict:
+    result = farmer_crop_recommender.recommend(
+        district=request.district,
+        soil_choice=request.soil_choice,
+        water_choice=request.water_choice,
+        weather_problem=request.weather_problem,
+        farmer_goal=request.farmer_goal,
+        language=request.language,
+    )
+    result.update(
+        {
+            "mode": "basic_farmer_recommendation",
+            "model_prediction_available": False,
+            "confidence": None,
+            "risk_context": request.model_dump(),
+        }
+    )
+    try:
+        session_id = database.save_farmer_session(request.model_dump(), result)
+    except DatabaseError as exc:
+        raise HTTPException(
+            status_code=503, detail=f"Farmer guide history could not be saved: {exc}"
+        ) from exc
+    return {
+        "success": True,
+        "interface_type": "easy_farmer",
+        "session_id": session_id,
+        **result,
+    }
+
+
+@router.post("/predict")
+def farmer_predict(
+    request: FarmerGuideInput,
+>>>>>>> 1e78fbc7c314b401cd6d1fd5b4ad02bbbf8f911e
     database: PredictionDatabase = Depends(get_database),
 ) -> dict:
     selections = request.model_dump(exclude={"model_inputs"})
@@ -137,6 +206,7 @@ def farmer_predict(
         }
     else:
         try:
+<<<<<<< HEAD
             prediction = get_predictor().predict(request.model_inputs.model_dump())
         except PredictorError as exc:
             logger.warning("Farmer guide prediction service unavailable: %s", exc)
@@ -145,6 +215,16 @@ def farmer_predict(
             ) from exc
         result = {
             "mode": "ai_model_recommendation",
+=======
+            prediction = recommendation_service.recommend(
+                request.model_inputs.model_dump()
+            )
+        except PredictorError as exc:
+            raise HTTPException(status_code=503, detail=str(exc)) from exc
+        result = {
+            "mode": "ai_model_recommendation",
+            "recommendation_type": "farmer_model",
+>>>>>>> 1e78fbc7c314b401cd6d1fd5b4ad02bbbf8f911e
             "model_prediction_available": True,
             "best_crop": prediction["best_crop"],
             "confidence": prediction["recommendations"][0]["confidence"],
@@ -183,11 +263,18 @@ def farmer_predict(
         }
 
     try:
+<<<<<<< HEAD
         session_id = database.save_farmer_session(selections, result, user_id)
     except sqlite3.Error as exc:
         logger.exception("Could not save farmer guide history.")
         raise HTTPException(
             status_code=503, detail="Farmer guide history could not be saved."
+=======
+        session_id = database.save_farmer_session(selections, result)
+    except DatabaseError as exc:
+        raise HTTPException(
+            status_code=503, detail=f"Farmer guide history could not be saved: {exc}"
+>>>>>>> 1e78fbc7c314b401cd6d1fd5b4ad02bbbf8f911e
         ) from exc
     return {
         "success": True,

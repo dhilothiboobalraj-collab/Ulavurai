@@ -1,0 +1,89 @@
+{
+  "version": 1,
+  "source": {
+    "title": "Water Requirements of Agricultural Crops in Surface Irrigation Methods",
+    "publisher": "Tamil Nadu Agricultural University, Agritech Portal",
+    "url": "https://agritech.tnau.ac.in/agriculture/agri_irrigationmgt_waterrequirements.html",
+    "notes": "The table specifies a 5 cm depth at each irrigation and lists total water requirement and duration. Values are retained as published; they are not district-specific and are not a measure of local crop suitability."
+  },
+  "scoring": {
+    "weights": {
+      "water_availability": 0.65,
+      "supported_goal": 0.35
+    },
+    "water_availability_mapping": {
+      "low": "prefer_lower_source_water_total",
+      "rainfed": "prefer_lower_source_water_total",
+      "medium": "prefer_middle_source_water_total",
+      "high": "prefer_higher_source_water_total"
+    },
+    "relative_water_classes": {
+      "method": "tertiles",
+      "notes": "Low, medium, and high are relative groups calculated from the water totals in this source table; they are not universal irrigation thresholds."
+    }
+  },
+  "unsupported_factors": [
+    "soil_compatibility",
+    "district_compatibility",
+    "current_problem_compatibility",
+    "profit_or_income_goal",
+    "safe_choice_goal"
+  ],
+  "crops": [
+    {
+      "crop": "rice",
+      "water_requirement_mm": 1250,
+      "duration_days": 110
+    },
+    {
+      "crop": "sugarcane",
+      "water_requirement_mm": 2200,
+      "duration_days": 360
+    },
+    {
+      "crop": "groundnut",
+      "water_requirement_mm": 510,
+      "duration_days": 105
+    },
+    {
+      "crop": "sorghum",
+      "water_requirement_mm": 500,
+      "duration_days": 105
+    },
+    {
+      "crop": "maize",
+      "water_requirement_mm": 500,
+      "duration_days": 100
+    },
+    {
+      "crop": "ragi",
+      "water_requirement_mm": 310,
+      "duration_days": 95
+    },
+    {
+      "crop": "cotton",
+      "water_requirement_mm": 600,
+      "duration_days": 165
+    },
+    {
+      "crop": "blackgram",
+      "water_requirement_mm": 280,
+      "duration_days": 65
+    },
+    {
+      "crop": "soybean",
+      "water_requirement_mm": 320,
+      "duration_days": 85
+    },
+    {
+      "crop": "sesame",
+      "water_requirement_mm": 150,
+      "duration_days": 85
+    },
+    {
+      "crop": "sunflower",
+      "water_requirement_mm": 450,
+      "duration_days": 110
+    }
+  ]
+}

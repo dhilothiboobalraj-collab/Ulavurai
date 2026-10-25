@@ -1,4 +1,5 @@
 import math
+<<<<<<< HEAD
 import logging
 import sqlite3
 from typing import Literal
@@ -13,6 +14,19 @@ from backend.services.predictor import PredictorError, get_predictor
 
 router = APIRouter(tags=["prediction"])
 logger = logging.getLogger(__name__)
+=======
+
+from typing import Literal
+
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+from database import DatabaseError, PredictionDatabase, get_database
+from services.predictor import PredictorError
+from services.recommendation import recommendation_service
+
+router = APIRouter(tags=["prediction"])
+>>>>>>> 1e78fbc7c314b401cd6d1fd5b4ad02bbbf8f911e
 
 
 class PredictionInput(BaseModel):
@@ -74,7 +88,10 @@ class PredictionRequest(PredictionInput):
 @router.post("/predict")
 def predict(
     request: PredictionRequest,
+<<<<<<< HEAD
     user_id: str = Depends(require_authenticated_user),
+=======
+>>>>>>> 1e78fbc7c314b401cd6d1fd5b4ad02bbbf8f911e
     database: PredictionDatabase = Depends(get_database),
 ) -> dict:
     try:
@@ -84,12 +101,17 @@ def predict(
             if request.advisory_context is not None
             else {}
         )
+<<<<<<< HEAD
         result = get_predictor().predict(values)
         result["advisory_context"] = context
+=======
+        result = recommendation_service.recommend(values)
+>>>>>>> 1e78fbc7c314b401cd6d1fd5b4ad02bbbf8f911e
         database.save_prediction(
             values,
             result["best_crop"],
             result["recommendations"][0]["confidence"],
+<<<<<<< HEAD
             user_id,
             context,
         )
@@ -103,4 +125,14 @@ def predict(
         logger.exception("Could not save prediction history.")
         raise HTTPException(
             status_code=503, detail="Prediction history could not be saved."
+=======
+            context,
+        )
+        return {"success": True, "advisory_context": context, **result}
+    except PredictorError as exc:
+        raise HTTPException(status_code=503, detail=str(exc)) from exc
+    except DatabaseError as exc:
+        raise HTTPException(
+            status_code=503, detail=f"Prediction history could not be saved: {exc}"
+>>>>>>> 1e78fbc7c314b401cd6d1fd5b4ad02bbbf8f911e
         ) from exc
