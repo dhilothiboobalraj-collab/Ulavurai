@@ -98,34 +98,44 @@ development. Enable email confirmation under the email provider settings if
 you want verification links; signup displays a verification notice until the
 user confirms. The auth redirect returns to the app root.
 
-Deploy the React frontend to Vercel and the FastAPI backend to Render as
-separate services. In Vercel, set the project root directory to `frontend`,
-the build command to `npm run build`, and the output directory to `dist`.
-`frontend/vercel.json` provides the React Router fallback for direct
-navigation and page refreshes.
+Deploy the Vite frontend and FastAPI backend together from the repository root
+on Vercel. The root `vercel.json` builds `frontend/` as a static site and
+`api/index.py` as a Python function; `/api/*` requests are routed to the
+existing FastAPI application in `backend/main.py`. Its existing routers keep
+the authenticated predictions, farmer guidance, model information, and
+user-specific history endpoints. The model, metadata, and dataset are loaded
+using paths resolved from the backend source file.
 
-Set these Production environment variables in Vercel:
+In Vercel, import the repository and keep the project root directory set to
+the repository root (not `frontend/`). Use the Other framework preset if
+Vercel does not detect the mixed frontend/backend project automatically.
+`vercel.json` defines the frontend build and API routing.
+
+Set these environment variables for Production, Preview, and Development as
+needed:
 
 ```text
 VITE_SUPABASE_URL=https://YOUR_PROJECT_ID.supabase.co
 VITE_SUPABASE_PUBLISHABLE_KEY=YOUR_SUPABASE_PUBLISHABLE_KEY
-VITE_API_BASE_URL=https://YOUR_RENDER_SERVICE.onrender.com
+SUPABASE_URL=https://YOUR_PROJECT_ID.supabase.co
+SUPABASE_PUBLISHABLE_KEY=YOUR_SUPABASE_PUBLISHABLE_KEY
+DATABASE_URL=YOUR_HOSTED_POSTGRESQL_CONNECTION_STRING
+APP_ENV=production
 ```
 
-In Render, create a Docker web service from this repository using the root
-`Dockerfile`. Set `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`,
-`APP_ENV=production`, and `CORS_ALLOWED_ORIGINS` to the exact HTTPS Vercel
-frontend origin. Set `DATABASE_URL` to a hosted PostgreSQL connection string
-for persistent prediction history; otherwise the container's local SQLite
-file may not persist between deployments. Do not put database credentials or
-Supabase secrets in Vercel's `VITE_*` variables.
+The frontend API base defaults to `/api` in production; leave
+`VITE_API_BASE_URL` unset in Vercel. Do not set it to `localhost` or a Render
+URL. `DATABASE_URL` must be a hosted PostgreSQL connection string because
+Vercel functions do not provide persistent local SQLite storage. Use your
+database provider's serverless-compatible connection/pooler URL. Keep database
+credentials server-side and never put them in `VITE_*` variables. The
+Supabase publishable key is intended for the frontend; do not expose a
+Supabase secret/service-role key in frontend or environment examples.
 
-The browser calls the Render backend directly at the configured origin (for
-example, `https://YOUR_RENDER_SERVICE.onrender.com/health`); API paths do not
-use an `/api` prefix on Render. Interactive API documentation is available at
-`/docs`. Protected operations require a Supabase session. Verify the deployed
-health endpoint, sign-in, and authenticated prediction/history flows against
-your actual hosting configuration.
+The API health endpoint and interactive documentation are available at
+`/api/health` and `/api/docs`. Protected operations require a Supabase session.
+After deploying, verify the health endpoint, sign-in, and authenticated
+prediction/history flows in the Vercel deployment.
 
 Existing local history in `predictions.db` is not copied automatically. To
 preserve it, run the migration from the project root on a machine that can
@@ -140,28 +150,26 @@ The migration is idempotent, preserves existing record IDs and user IDs when
 available, and does not modify the SQLite source file.
 
 A root-level `Dockerfile` also packages the API, saved model, metrics, and
-dataset for a Docker-capable backend host. Build it from the project root:
+dataset for local Docker testing or a Docker-capable backend host. Build it
+from the project root:
 
 ```powershell
 docker build -t seasonsense-api .
 ```
 
-Configure `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `APP_ENV=production`,
-`CORS_ALLOWED_ORIGINS`, and `DATABASE_URL` in the backend host. `PORT` is
-supplied by many container hosts; the image defaults to port 8000 when it is
-absent. Set `CORS_ALLOWED_ORIGINS` to the exact HTTPS origin of the deployed
-frontend, with no path or wildcard. Production startup fails if CORS origins
-are missing or include `*`. Point the Vercel `VITE_API_BASE_URL` variable to
-the backend's public HTTPS URL.
+For a separate production backend host, configure `SUPABASE_URL`,
+`SUPABASE_PUBLISHABLE_KEY`, `APP_ENV=production`, `CORS_ALLOWED_ORIGINS`, and
+`DATABASE_URL` in that host. `PORT` is supplied by many container hosts; the
+image defaults to port 8000 when it is absent. Production CORS origins must be
+explicit HTTPS origins without a path or wildcard.
 
 The container stores history at `/data/predictions.db` by default. Attach a
 persistent writable disk at `/data` to preserve history across restarts. SQLite
 is appropriate only for one backend instance with persistent local storage;
 use a managed database before scaling to multiple instances or using ephemeral
 storage. `DATABASE_PATH` can override the SQLite file path if the host mounts
-persistent storage elsewhere. Render's ephemeral filesystem does not provide
-durable history storage without a persistent disk; hosted PostgreSQL is
-recommended.
+persistent storage elsewhere. Ephemeral function/container filesystems do not
+provide durable history storage; hosted PostgreSQL is recommended.
 
 ## Existing model artifacts
 
