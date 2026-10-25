@@ -1,0 +1,12 @@
+.git
+.venv
+__pycache__
+**/__pycache__
+*.py[cod]
+frontend
+node_modules
+predictions.db
+*.db
+.env
+.env.*
+!.env.example
