@@ -1,15 +1,12 @@
 import { getAccessToken, supabase } from "../auth/supabase.js";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL?.trim()
-  || (import.meta.env.DEV ? "http://localhost:8000" : "");
+  || (import.meta.env.PROD ? "/api" : "http://localhost:8000");
 
 async function request(path, options = {}) {
   let response;
   const isHealthCheck = path === "/health";
-  if (!API_BASE) {
-    throw new Error("The backend API is not configured. Set VITE_API_BASE_URL to the deployed API URL.");
-  }
-  if (import.meta.env.PROD) {
+  if (import.meta.env.PROD && !API_BASE.startsWith("/")) {
     let backendUrl;
     try {
       backendUrl = new URL(API_BASE);

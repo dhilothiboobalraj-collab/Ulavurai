@@ -1,38 +1,38 @@
 import os
 from contextlib import asynccontextmanager
-<<<<<<< HEAD
+from pathlib import Path
 from urllib.parse import urlsplit
-=======
->>>>>>> 1e78fbc7c314b401cd6d1fd5b4ad02bbbf8f911e
 
+from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-<<<<<<< HEAD
-from backend.api import farmer_guide, history, model, prediction
-from backend.database import get_database
-from backend.services.predictor import load_predictor, predictor_status
-=======
-from api import farmer_guide, history, model, prediction
-from database import get_database
-from services.predictor import load_predictor, predictor_status
->>>>>>> 1e78fbc7c314b401cd6d1fd5b4ad02bbbf8f911e
+load_dotenv(Path(__file__).resolve().parents[1] / ".env")
+
+if __package__ == "backend":
+    from backend.api import farmer_guide, history, model, prediction
+    from backend.database import get_database
+    from backend.services.predictor import load_predictor, predictor_status
+else:
+    from api import farmer_guide, history, model, prediction
+    from database import get_database
+    from services.predictor import load_predictor, predictor_status
+
+
+is_vercel = os.getenv("VERCEL") == "1"
+api_prefix = "/api" if is_vercel else ""
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-<<<<<<< HEAD
-    get_database().initialize()
-=======
     database = get_database()
     if os.getenv("VERCEL") == "1" and not database.database_url:
         raise RuntimeError(
             "DATABASE_URL must be set on Vercel; SQLite is not persistent there."
         )
     database.initialize()
->>>>>>> 1e78fbc7c314b401cd6d1fd5b4ad02bbbf8f911e
     load_predictor()
     yield
 
@@ -42,20 +42,27 @@ app = FastAPI(
     description="Crop recommendations using the saved SeasonSense Random Forest model.",
     version="1.0.0",
     lifespan=lifespan,
+    docs_url=f"{api_prefix}/docs",
+    redoc_url=f"{api_prefix}/redoc",
+    openapi_url=f"{api_prefix}/openapi.json",
 )
-<<<<<<< HEAD
-development_origins = {
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-}
 configured_origins = {
     origin.strip()
-    for origin in os.getenv("CORS_ALLOWED_ORIGINS", "").split(",")
+    for origin in (
+        os.getenv("CORS_ALLOWED_ORIGINS")
+        or os.getenv("CORS_ORIGINS")
+        or ""
+    ).split(",")
     if origin.strip()
 }
-allowed_origins = configured_origins or development_origins
-is_production = os.getenv("APP_ENV", "").strip().lower() == "production"
-if is_production:
+is_production = (
+    os.getenv("APP_ENV", "").strip().lower() == "production" or is_vercel
+)
+if is_production and not is_vercel and not configured_origins:
+    raise RuntimeError(
+        "CORS_ALLOWED_ORIGINS must contain explicit HTTPS origins in production."
+    )
+if is_production and configured_origins:
     invalid_origins = set()
     for origin in configured_origins:
         try:
@@ -74,59 +81,33 @@ if is_production:
         if not valid_origin:
             invalid_origins.add(origin)
 
-    if not configured_origins or "*" in configured_origins or invalid_origins:
+    if "*" in configured_origins or invalid_origins:
         raise RuntimeError(
             "CORS_ALLOWED_ORIGINS must contain only explicit HTTPS origins "
             "without paths in production."
         )
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=sorted(allowed_origins),
-    allow_credentials=False,
-    allow_methods=["GET", "POST", "DELETE"],
-    allow_headers=["Authorization", "Content-Type"],
-)
-app.include_router(prediction.router)
-app.include_router(farmer_guide.router)
-app.include_router(model.router)
-app.include_router(model.crops_router)
-app.include_router(history.router)
-=======
-configured_origins = [
-    origin.strip()
-    for origin in os.getenv("CORS_ORIGINS", "").split(",")
-    if origin.strip()
-]
-is_vercel = os.getenv("VERCEL") == "1"
-api_prefix = "/api" if is_vercel else ""
-if is_vercel and "*" in configured_origins:
-    raise ValueError("CORS_ORIGINS must not contain '*' in production.")
-allowed_origins = (
-    configured_origins
-    if is_vercel
-    else list(
-        dict.fromkeys(
-            [
-                "http://localhost:5173",
-                "http://127.0.0.1:5173",
-                *configured_origins,
-            ]
-        )
+if is_production and not configured_origins:
+    allowed_origins = []
+else:
+    allowed_origins = sorted(
+        configured_origins
+        | {
+            "http://localhost:5173",
+            "http://127.0.0.1:5173",
+        }
     )
-)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_credentials=False,
+    allow_methods=["GET", "POST", "DELETE"],
+    allow_headers=["Authorization", "Content-Type"],
 )
 app.include_router(prediction.router, prefix=api_prefix)
 app.include_router(farmer_guide.router, prefix=api_prefix)
 app.include_router(model.router, prefix=api_prefix)
 app.include_router(model.crops_router, prefix=api_prefix)
 app.include_router(history.router, prefix=api_prefix)
->>>>>>> 1e78fbc7c314b401cd6d1fd5b4ad02bbbf8f911e
 
 
 @app.exception_handler(RequestValidationError)
@@ -144,10 +125,6 @@ async def validation_error_handler(
     return JSONResponse(status_code=422, content={"detail": errors})
 
 
-<<<<<<< HEAD
-@app.get("/health")
-=======
 @app.get(f"{api_prefix}/health")
->>>>>>> 1e78fbc7c314b401cd6d1fd5b4ad02bbbf8f911e
 def health() -> dict:
     return predictor_status()

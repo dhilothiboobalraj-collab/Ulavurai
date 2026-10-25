@@ -13,5 +13,6 @@ dependencies = [
     "joblib",
     "pydantic",
     "python-multipart",
-    "psycopg[binary]"
+    "psycopg[binary]",
+    "python-dotenv",
 ]

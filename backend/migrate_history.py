@@ -5,8 +5,12 @@ import sqlite3
 from pathlib import Path
 from typing import Any
 
-from database import PredictionDatabase, get_database
-from schema import FEATURES
+if __package__ == "backend":
+    from backend.database import PredictionDatabase, get_database
+    from backend.schema import FEATURES
+else:
+    from database import PredictionDatabase, get_database
+    from schema import FEATURES
 
 
 def _value(row: sqlite3.Row, key: str, default: Any) -> Any:
@@ -47,6 +51,7 @@ def migrate_history(source: Path, database: PredictionDatabase) -> tuple[int, in
                 "confidence",
                 "interface_type",
                 "advisory_context_json",
+                "user_id",
             ]
             values = (
                 row["id"],
@@ -56,6 +61,7 @@ def migrate_history(source: Path, database: PredictionDatabase) -> tuple[int, in
                 row["confidence"],
                 _value(row, "interface_type", "expert"),
                 _value(row, "advisory_context_json", "{}"),
+                _value(row, "user_id", "legacy"),
             )
             quoted_fields = ", ".join(f'"{field}"' for field in fields)
             placeholders = ", ".join("?" for _ in values)
@@ -70,7 +76,7 @@ def migrate_history(source: Path, database: PredictionDatabase) -> tuple[int, in
             fields = (
                 "id, timestamp, interface_type, language, district, soil_choice, "
                 "water_choice, weather_problem, farmer_goal, model_prediction_available, "
-                "predicted_crop, confidence, recommendation_type, result_json"
+                "predicted_crop, confidence, recommendation_type, result_json, user_id"
             )
             values = (
                 row["id"],
@@ -87,6 +93,7 @@ def migrate_history(source: Path, database: PredictionDatabase) -> tuple[int, in
                 row["confidence"],
                 _value(row, "recommendation_type", "legacy_farmer"),
                 row["result_json"],
+                _value(row, "user_id", "legacy"),
             )
             placeholders = ", ".join("?" for _ in values)
             database._execute(

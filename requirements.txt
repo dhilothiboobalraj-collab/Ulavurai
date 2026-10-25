@@ -4,7 +4,5 @@ pandas>=2.2
 scikit-learn==1.9.1
 fastapi>=0.115
 uvicorn[standard]>=0.30
-<<<<<<< HEAD
-=======
 psycopg[binary]>=3.2
->>>>>>> 1e78fbc7c314b401cd6d1fd5b4ad02bbbf8f911e
+python-dotenv>=1.0
