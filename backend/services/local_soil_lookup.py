@@ -8,9 +8,20 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
-import rasterio
-from rasterio.transform import rowcol
-from rasterio.warp import transform
+try:
+    import rasterio
+    from rasterio.transform import rowcol
+    from rasterio.warp import transform
+
+    RASTERIO_AVAILABLE = True
+    RASTERIO_IMPORT_ERROR = None
+except (ImportError, OSError) as exc:
+    rasterio = None
+    rowcol = None
+    transform = None
+
+    RASTERIO_AVAILABLE = False
+    RASTERIO_IMPORT_ERROR = str(exc)
 
 logger = logging.getLogger(__name__)
 
@@ -545,6 +556,16 @@ def lookup_local_soil(
                 "sample_longitude": float(row["longitude"]),
                 "distance_m": round(distance, 2),
             }
+    if raster_installed and not RASTERIO_AVAILABLE:
+        logger.warning(
+            "Raster soil lookup is unavailable: %s",
+            RASTERIO_IMPORT_ERROR,
+        )
+        warnings.append(
+            "Raster-based soil lookup is temporarily unavailable in this "
+            "deployment. CSV-based soil lookup remains available."
+        )
+        raster_installed = False
 
     if raster_installed:
         if raster_info_path is None or not raster_info_path.is_file():
