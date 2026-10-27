@@ -116,9 +116,13 @@ the repository does not change Supabase configuration.
 
 ## Runtime assets, dependencies, and constraints
 
-The root `requirements.txt` includes the fully pinned
-`requirements.lock.txt` dependency closure. The supported runtime is Python
-**3.12**, which Vercel's Python runtime supports and which is declared
+The root `requirements.txt` directly pins the runtime dependencies from
+`backend/pyproject.toml`: FastAPI, Uvicorn, pandas, NumPy, scikit-learn, joblib,
+psycopg, python-dotenv, and rasterio. This is important because the Vercel
+function builder must discover the Python packages imported by the FastAPI
+entrypoint. `requirements.lock.txt` records the previously resolved
+transitive dependency closure, but is not the deployment manifest. The
+supported runtime is Python **3.12**, which Vercel's Python runtime supports and is declared
 in `.python-version` and `backend/pyproject.toml`. The saved model must continue
 to use the pinned `scikit-learn==1.9.1` and compatible NumPy version; changing
 those versions requires an explicit model-load and prediction test.
