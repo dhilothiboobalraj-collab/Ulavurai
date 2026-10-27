@@ -1,11 +1,15 @@
 __pycache__/
 *.py[cod]
 .venv/
+venv/
+node_modules/
 models/*.joblib
 !models/crop_recommendation.joblib
 frontend/node_modules/
 frontend/dist/
 frontend/.env.local
+.DS_Store
+Thumbs.db
 predictions.db
 .env
 .env.*
