@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ArrowDown, ArrowRight, BarChart3, BookOpenCheck, Database, Sprout } from "lucide-react";
+import { ArrowDown, ArrowRight, BarChart3, BookOpenCheck, Database, Sprout, Wrench } from "lucide-react";
 import { Link } from "react-router-dom";
 import MetricCard from "../components/MetricCard.jsx";
 import { api } from "../services/api.js";
@@ -33,11 +33,11 @@ export default function Home() {
       <section className="hero">
         <div className="hero-copy">
           <span className="hero-tag"><Sprout size={15} /> DATA-LED AGRICULTURE</span>
-          <h1>SeasonSense AI</h1>
+          <h1>Ulavurai</h1>
           <h2 className="hero-subtitle">Intelligent Crop Recommendation Using Machine Learning</h2>
           <p>
             Enter N, P, K, temperature, humidity, soil pH, and rainfall. The
-            existing Random Forest model returns a crop recommendation,
+            trained crop model returns a crop recommendation,
             probability-based confidence, top alternatives, and dataset-relative
             soil and environmental analysis.
           </p>
@@ -67,7 +67,7 @@ export default function Home() {
       <section className="experience-section">
         <div className="section-title">
           <p className="eyebrow">ONE INTELLIGENCE · TWO EXPERIENCES</p>
-          <h2>Choose how you want to use SeasonSense AI</h2>
+          <h2>Choose how you want to use Ulavurai</h2>
         </div>
         <div className="experience-grid">
           <Link className="experience-card experience-card-expert" to="/predict">
@@ -85,6 +85,16 @@ export default function Home() {
             <span className="experience-link">எளிய வழிகாட்டியைத் திறக்கவும் <ArrowRight size={17} /></span>
           </Link>
         </div>
+      </section>
+
+      <section className="toolkit-promo panel">
+        <span className="experience-icon"><Wrench size={24} /></span>
+        <div>
+          <p className="eyebrow">FIELD TOOLKIT</p>
+          <h2>Try crop scenarios and plan ahead</h2>
+          <p>Explore what-if model scores, local weather, crop lifecycle references, and your own price and yield assumptions.</p>
+        </div>
+        <Link to="/toolkit" className="button button-primary">Open field toolkit <ArrowRight size={17} /></Link>
       </section>
 
       <section className="section-block">

@@ -33,7 +33,7 @@ def migrate_history(source: Path, database: PredictionDatabase) -> tuple[int, in
             )
         }
         if "predictions" not in tables or "farmer_guide_sessions" not in tables:
-            raise RuntimeError("The SQLite database does not contain SeasonSense history tables.")
+            raise RuntimeError("The SQLite database does not contain Ulavurai history tables.")
         predictions = sqlite_connection.execute(
             "SELECT * FROM predictions ORDER BY id"
         ).fetchall()
@@ -121,7 +121,7 @@ def migrate_history(source: Path, database: PredictionDatabase) -> tuple[int, in
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Copy SeasonSense history from SQLite into DATABASE_URL PostgreSQL."
+        description="Copy Ulavurai history from SQLite into DATABASE_URL PostgreSQL."
     )
     parser.add_argument(
         "--source",

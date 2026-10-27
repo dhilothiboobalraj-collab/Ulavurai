@@ -122,6 +122,178 @@ class FarmerCropRecommender:
             ),
         }
 
+    def recommend_for_simple_inputs(
+        self,
+        *,
+        district: str,
+        issue: str,
+        goal: str,
+        irrigation: str | None,
+        season: str | None,
+        sowing_month: int | None,
+        soil_type: str | None,
+        issue_description: str | None,
+    ) -> dict[str, Any]:
+        crops = self.rules["crops"]
+        water_values = [float(crop["water_requirement_mm"]) for crop in crops]
+        water_range = (min(water_values), max(water_values))
+        availability = irrigation
+        if availability == "limited":
+            availability = "low"
+        elif availability == "reliable":
+            availability = "high"
+        if availability is None and issue == "low_rainfall":
+            availability = "rainfed"
+        if availability is None:
+            availability = "medium"
+
+        ranked: list[dict[str, Any]] = []
+        for crop in crops:
+            water_score = self._water_score(
+                float(crop["water_requirement_mm"]), water_range, availability
+            )
+            ranked.append(
+                {
+                    **crop,
+                    "water_score": water_score,
+                }
+            )
+
+        if goal == "short_duration":
+            ranked.sort(
+                key=lambda crop: (
+                    crop["duration_days"],
+                    -crop["water_score"],
+                    crop["crop"],
+                )
+            )
+        elif goal == "low_water" or issue == "low_rainfall":
+            ranked.sort(
+                key=lambda crop: (
+                    crop["water_requirement_mm"],
+                    crop["duration_days"],
+                    crop["crop"],
+                )
+            )
+        else:
+            ranked.sort(
+                key=lambda crop: (
+                    -crop["water_score"],
+                    crop["water_requirement_mm"],
+                    crop["duration_days"],
+                    crop["crop"],
+                )
+            )
+        recommendations = [
+            {
+                "rank": rank,
+                "crop": crop["crop"],
+                "crop_ta": self._crop_name_tamil(crop["crop"]),
+                "water_requirement_mm": crop["water_requirement_mm"],
+                "water_requirement_class": self._water_class(
+                    crop["water_requirement_mm"], water_values
+                ),
+                "duration_days": crop["duration_days"],
+                "reasons": self._simple_reasons(
+                    goal, availability
+                ),
+                "season_guidance": None,
+                "soil_climate_suitability": "not_assessed",
+                "input_cost_category": None,
+                "market_information": None,
+                "source": self.rules["source"],
+            }
+            for rank, crop in enumerate(ranked[:3], start=1)
+        ]
+        limitations = [
+            "district_crop_suitability_unavailable",
+            "district_soil_climate_data_unavailable",
+            "seasonal_sowing_guidance_unavailable",
+            "soil_compatibility_not_assessed",
+            "cost_and_market_data_unavailable",
+        ]
+        if goal not in {"low_water", "short_duration"}:
+            limitations.append("goal_not_supported_by_available_crop_data")
+        if issue in {"heavy_rainfall", "low_fertility", "ph_issue", "pest_disease", "market_profit", "other"}:
+            limitations.append("issue_not_supported_by_available_crop_data")
+        if issue == "pest_disease":
+            limitations.append("consult_agricultural_officer_for_pest_or_disease")
+        if irrigation is None and issue != "low_rainfall":
+            limitations.append("water_availability_not_provided_mid_range_used")
+        if soil_type:
+            limitations.append("selected_soil_type_not_used_without_source_backed_rules")
+        if season or sowing_month:
+            limitations.append("selected_season_not_used_without_local_sowing_calendar")
+        if issue_description:
+            limitations.append("issue_description_is_context_only_not_diagnosed")
+
+        return {
+            "status": "provisional",
+            "method": "tnau_source_based_relative_water_and_duration_ranking",
+            "district": district,
+            "issue": issue,
+            "goal": goal,
+            "selected_context": {
+                "irrigation": irrigation,
+                "season": season,
+                "sowing_month": sowing_month,
+                "soil_type": soil_type,
+                "issue_description": issue_description,
+            },
+            "district_data": {
+                "status": "unavailable",
+                "reason": (
+                    "No district-level soil, climate, or crop-calendar dataset "
+                    "is installed for this recommendation flow."
+                ),
+            },
+            "ranking_context": {
+                "water_availability_used": availability,
+                "goal_used": goal in {"low_water", "short_duration"},
+                "district_used": False,
+                "issue_used": issue == "low_rainfall" and irrigation is None,
+                "season_used": False,
+                "soil_type_used": False,
+            },
+            "recommendations": recommendations,
+            "source": self.rules["source"],
+            "source_last_updated": None,
+            "limitations": limitations,
+            "advisory_only": True,
+        }
+
+    @staticmethod
+    def _crop_name_tamil(crop: str) -> str:
+        names = {
+            "rice": "நெல்",
+            "sugarcane": "கரும்பு",
+            "groundnut": "நிலக்கடலை",
+            "sorghum": "சோளம்",
+            "maize": "மக்காச்சோளம்",
+            "ragi": "கேழ்வரகு",
+            "cotton": "பருத்தி",
+            "blackgram": "உளுந்து",
+            "soybean": "சோயாபீன்",
+            "sesame": "எள்",
+            "sunflower": "சூரியகாந்தி",
+        }
+        return names[crop]
+
+    @staticmethod
+    def _simple_reasons(
+        goal: str, availability: str
+    ) -> list[str]:
+        reasons = []
+        if availability == "medium":
+            reasons.append("middle_relative_water_need")
+        else:
+            reasons.append("relative_water_need_matches_selected_availability")
+        if goal == "low_water":
+            reasons.append("lower_water_use_supports_goal")
+        elif goal == "short_duration":
+            reasons.append("shorter_duration_supports_goal")
+        return reasons
+
     @staticmethod
     def _scale(value: float, value_range: tuple[float, float]) -> float:
         minimum, maximum = value_range

@@ -4,9 +4,11 @@ from fastapi import APIRouter, Depends, HTTPException
 
 if __package__.startswith("backend."):
     from backend.auth import require_authenticated_user
+    from backend.services.farmer_crop_recommender import farmer_crop_recommender
     from backend.services.predictor import PredictorError, get_predictor
 else:
     from auth import require_authenticated_user
+    from services.farmer_crop_recommender import farmer_crop_recommender
     from services.predictor import PredictorError, get_predictor
 
 router = APIRouter(
@@ -57,3 +59,16 @@ def crops() -> dict:
     except PredictorError as exc:
         logger.warning("Crop list unavailable: %s", exc)
         raise HTTPException(status_code=503, detail="The crop list is unavailable.") from exc
+
+
+@router.get("/crop-calendar")
+def crop_calendar() -> dict:
+    rules = farmer_crop_recommender.rules
+    return {
+        "source": rules["source"],
+        "crops": rules["crops"],
+        "note": (
+            "Durations are source-table planning references, not region-specific "
+            "sowing dates or fertilizer recommendations."
+        ),
+    }

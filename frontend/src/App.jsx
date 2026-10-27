@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { Activity, Leaf, LogOut, Menu, Sprout, X } from "lucide-react";
 import { Link, NavLink, Route, Routes } from "react-router-dom";
 import RequireAuth from "./auth/RequireAuth.jsx";
@@ -12,10 +12,14 @@ import Home from "./pages/Home.jsx";
 import InterfaceTabs from "./components/InterfaceTabs.jsx";
 import Predict from "./pages/Predict.jsx";
 import Results from "./pages/Results.jsx";
+import ResetPasswordPage from "./pages/ResetPasswordPage.jsx";
 import { api } from "./services/api.js";
+
+const FieldToolkit = lazy(() => import("./pages/FieldToolkit.jsx"));
 
 const links = [
   ["/", "Home"],
+  ["/toolkit", "Field toolkit"],
   ["/analytics", "Analytics"],
   ["/history", "History"],
   ["/about", "About"],
@@ -30,6 +34,7 @@ export default function App() {
     <Routes>
       <Route path="/login" element={<AuthPage />} />
       <Route path="/signup" element={<AuthPage signUp />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route element={<RequireAuth />}>
         <Route path="/*" element={<Dashboard
           logoutError={logoutError}
@@ -69,7 +74,7 @@ function Dashboard({ logoutError, logoutPending, onLogout, user }) {
       <header className="topbar">
         <Link to="/" className="brand" onClick={() => setMenuOpen(false)}>
           <span className="brand-mark"><Sprout size={21} /></span>
-          <span>SeasonSense<span className="brand-ai"> AI</span><small>SMART CROP ADVISORY PLATFORM</small></span>
+          <span>Ulavurai<small>SMART CROP ADVISORY PLATFORM</small></span>
         </Link>
         <button className="mobile-menu" aria-label="Toggle navigation" onClick={() => setMenuOpen(!menuOpen)}>
           {menuOpen ? <X /> : <Menu />}
@@ -92,6 +97,11 @@ function Dashboard({ logoutError, logoutPending, onLogout, user }) {
       {health?.status === "not_ready" && <div className="global-error" role="alert"><Leaf size={16} /> {health.error}</div>}
       <main><Routes>
         <Route path="/" element={<Home />} />
+        <Route path="/toolkit" element={
+          <Suspense fallback={<div className="page loading-state" role="status">Loading field toolkit…</div>}>
+            <FieldToolkit />
+          </Suspense>
+        } />
         <Route path="/farmer" element={<FarmerGuide />} />
         <Route path="/predict" element={<Predict />} />
         <Route path="/results" element={<Results />} />
@@ -100,7 +110,7 @@ function Dashboard({ logoutError, logoutPending, onLogout, user }) {
         <Route path="/about" element={<About />} />
         <Route path="*" element={<Home />} />
       </Routes></main>
-      <footer className="footer"><span>SEASONSENSE AI</span><span>Model outputs are informational and dataset-based.</span></footer>
+      <footer className="footer"><span>ULAVURAI</span><span>Model outputs are informational and dataset-based.</span></footer>
     </div>
   );
 }

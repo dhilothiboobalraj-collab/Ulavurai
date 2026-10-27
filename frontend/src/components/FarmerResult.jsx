@@ -209,6 +209,13 @@ export default function FarmerResult({
   const spoken = `${modelReady ? text.listenModel(cropName(result.best_crop)) : text.spokenGuidance} ${text.shortAction(selections)}`;
   const situationCards = [
     { icon: <MapPin />, label: text.district, value: selections.district_label },
+    ...(selections.latitude !== null && selections.longitude !== null
+      ? [{
+        icon: <MapPin />,
+        label: tamil ? "வயல் இடம்" : "Field location",
+        value: `${selections.latitude.toFixed(5)}, ${selections.longitude.toFixed(5)}`,
+      }]
+      : []),
     { icon: <Sprout />, label: text.soil, value: labels.soil_choice[selections.soil_choice] },
     { icon: <Droplets />, label: text.water, value: labels.water_choice[selections.water_choice] },
     { icon: <CloudRain />, label: text.problem, value: labels.weather_problem[selections.weather_problem] },

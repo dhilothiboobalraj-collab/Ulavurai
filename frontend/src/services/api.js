@@ -1,37 +1,41 @@
 import { getAccessToken, supabase } from "../auth/supabase.js";
+import { resolveApiBaseUrl } from "./apiBase.js";
+import { getApiRequestError, getApiResponseError } from "./apiErrors.js";
+import {
+  validateGeospatialLookupResponse,
+  validateLocalGeospatialResponse,
+  validateLocationDataResponse,
+} from "./geospatialAutofill.js";
+import { validateFarmerCropRecommendationsResponse } from "./farmerCropRecommendations.js";
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL?.trim()
-  || (import.meta.env.PROD ? "/api" : "http://localhost:8000");
+const API_BASE = resolveApiBaseUrl(
+  import.meta.env.VITE_API_BASE_URL,
+  import.meta.env.PROD,
+);
 
 async function request(path, options = {}) {
   let response;
+  const { timeoutMs, ...fetchOptions } = options;
   const isHealthCheck = path === "/health";
-  if (import.meta.env.PROD && !API_BASE.startsWith("/")) {
-    let backendUrl;
-    try {
-      backendUrl = new URL(API_BASE);
-    } catch {
-      throw new Error("VITE_API_BASE_URL must be an absolute HTTPS URL in production.");
-    }
-    if (
-      backendUrl.protocol !== "https:"
-      || ["localhost", "127.0.0.1", "::1"].includes(backendUrl.hostname)
-    ) {
-      throw new Error("VITE_API_BASE_URL must point to a public HTTPS backend in production.");
-    }
-  }
   const token = isHealthCheck ? null : await getAccessToken();
+  const abortController = timeoutMs ? new AbortController() : null;
+  const timeout = timeoutMs
+    ? setTimeout(() => abortController.abort(), timeoutMs)
+    : null;
   try {
     response = await fetch(`${API_BASE}${path}`, {
-      ...options,
+      ...fetchOptions,
+      ...(abortController ? { signal: abortController.signal } : {}),
       headers: {
         "Content-Type": "application/json",
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
         ...options.headers,
       },
     });
-  } catch {
-    throw new Error("Cannot reach the SeasonSense API. Check that the backend is running.");
+  } catch (reason) {
+    throw getApiRequestError(path, reason);
+  } finally {
+    if (timeout) clearTimeout(timeout);
   }
 
   if (response.status === 401 && !isHealthCheck && supabase) {
@@ -43,14 +47,7 @@ async function request(path, options = {}) {
 
   const body = await response.json().catch(() => ({}));
   if (!response.ok) {
-    const detail = body.detail;
-    const message = Array.isArray(detail)
-      ? detail.map((item) => {
-        const field = item.loc?.at(-1);
-        return field && field !== "body" ? `${field}: ${item.msg}` : item.msg;
-      }).join("; ")
-      : detail;
-    throw new Error(message || `Request failed (${response.status}).`);
+    throw new Error(getApiResponseError(path, response.status, body));
   }
   return body;
 }
@@ -59,12 +56,47 @@ export const api = {
   health: () => request("/health"),
   metrics: () => request("/model/metrics"),
   features: () => request("/model/features"),
+  cropCalendar: () => request("/model/crop-calendar"),
   importance: () => request("/model/importance"),
   crops: () => request("/crops"),
+  preview: (values) =>
+    request("/predict/preview", { method: "POST", body: JSON.stringify(values) }),
   predict: (values) =>
     request("/predict", { method: "POST", body: JSON.stringify(values) }),
   farmerPredict: (values) =>
     request("/farmer-guide/predict", { method: "POST", body: JSON.stringify(values) }),
+  farmerCropRecommendations: (values, language = "en") =>
+    request("/farmer-guide/crop-recommendations", {
+      method: "POST",
+      body: JSON.stringify(values),
+    }).then((response) => validateFarmerCropRecommendationsResponse(response, language)),
+  farmerLocationEstimate: (latitude, longitude) => {
+    const query = new URLSearchParams({
+      latitude: String(latitude),
+      longitude: String(longitude),
+    });
+    return request(`/farmer-guide/location-estimate?${query}`);
+  },
+  geospatialSoilLookup: (latitude, longitude) =>
+    request("/geospatial/soil-lookup", {
+      method: "POST",
+      body: JSON.stringify({ latitude, longitude }),
+      timeoutMs: 15000,
+    }).then(validateGeospatialLookupResponse),
+  geospatialLocalLookup: (latitude, longitude) =>
+    request("/geospatial/local-lookup", {
+      method: "POST",
+      body: JSON.stringify({ latitude, longitude }),
+      timeoutMs: 25000,
+    }).then(validateLocalGeospatialResponse),
+  locationData: (latitude, longitude) => {
+    const query = new URLSearchParams({
+      latitude: String(latitude),
+      longitude: String(longitude),
+    });
+    return request(`/location-data?${query}`, { timeoutMs: 20000 })
+      .then(validateLocationDataResponse);
+  },
   history: () => request("/history"),
   clearHistory: () => request("/history", { method: "DELETE" }),
 };

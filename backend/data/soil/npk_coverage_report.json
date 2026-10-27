@@ -1,0 +1,262 @@
+{
+  "generated_at": "2026-10-27T09:26:21.570450+00:00",
+  "compatible_npk_source_installed": false,
+  "data_sources": [
+    {
+      "name": "ICFA Crop Recommendation dataset v2 (training data)",
+      "url": "https://figshare.com/articles/dataset/Crop_Recommendation_dataset/26308696",
+      "license": "CC BY 4.0",
+      "download_status": "The local CSV matches the published file MD5; this dataset is training data, not a geospatial soil source.",
+      "coverage_status": "2,200 rows without coordinates. N/P/K are described as nutrient-content ratios; units and chemical forms are undocumented."
+    },
+    {
+      "name": "ISRIC SoilGrids 2.0",
+      "url": "https://docs.isric.org/globaldata/soilgrids/",
+      "license": "Creative Commons Attribution 4.0 International (CC BY 4.0)",
+      "download_status": "installed",
+      "coverage_status": "Local 0-5 cm pH and total-nitrogen raster extracts; neither is an eligible model N/P/K source."
+    },
+    {
+      "name": "Government of India Soil Health Card portal",
+      "url": "https://soilhealth.dac.gov.in/",
+      "license": "Underlying-data license not verified",
+      "download_status": "No authorized bulk point-data download verified",
+      "coverage_status": "Public landing page does not document downloadable point records, coordinates, units, depths, dates, methods, or missing-value representation."
+    },
+    {
+      "name": "Tamil Nadu Agricultural Department / Tamil Mannvalam",
+      "url": "https://www.tnagrisnet.tn.gov.in/",
+      "license": "Underlying dataset license not verified",
+      "download_status": "The public AGRISNET landing page was reachable, but no downloadable georeferenced soil file or data license was verified.",
+      "coverage_status": "No public file with sample coordinates, N/P/K analyte definitions, laboratory methods, units, depths, dates, and reuse terms was verified."
+    },
+    {
+      "name": "NRSC/Bhuvan soils and nutrient-status mapping",
+      "url": "https://www.nrsc.gov.in/nrscnew/Apps_Soils_Apps.php",
+      "license": "Bhuvan terms restrict copying, redistribution, and bulk downloads without prior written authorization",
+      "download_status": "No permitted georeferenced point-data file verified",
+      "coverage_status": "Reviewed sources describe district-level nutrient maps and geo-registered workflows, not a published point dataset with model-compatible methods and units."
+    },
+    {
+      "name": "FAO Global Soil Nutrient Map (GSNmap)",
+      "url": "https://www.fao.org/global-soil-partnership/soil-data/global-soil-nutrient-map-gsnmap/en/",
+      "license": "Underlying map-data license not verified; the technical manual is CC BY-NC-SA 3.0 IGO",
+      "download_status": "No compatible India data download verified",
+      "coverage_status": "Reviewed project documentation does not identify a point archive of Indian lab tests, compatible analyte forms, resolution, depth, dates, or units."
+    },
+    {
+      "name": "NASA POWER meteorological monthly normals",
+      "url": "https://power.larc.nasa.gov/",
+      "license": "NASA Earth science data are shared under NASA's full-and-open data policy; cite NASA POWER and its source dataset. Do not imply NASA endorsement.",
+      "download_status": "installed",
+      "coverage_status": "180 installed grid cells; 180 contain climate values."
+    }
+  ],
+  "compatibility_configuration": {
+    "N": {
+      "model_definition": "ratio of Nitrogen content in soil",
+      "model_units": null,
+      "training_source_doi": "10.6084/m9.figshare.26308696.v2",
+      "source_eligibility": false,
+      "missing_requirements": [
+        "The meaning of the training-data ratio and its physical units.",
+        "Whether the model feature is total or plant-available nitrogen and, if available, the extraction method.",
+        "A documented unit conversion linking source measurements to the model feature.",
+        "Georeferenced records with sampling date, depth, method, and reuse permission."
+      ],
+      "reason": "The training source describes this feature only as a nutrient-content ratio; the model-compatible definition and measurement units remain unverified."
+    },
+    "P": {
+      "model_definition": "ratio of Phosphorous content in soil",
+      "model_units": null,
+      "training_source_doi": "10.6084/m9.figshare.26308696.v2",
+      "source_eligibility": false,
+      "missing_requirements": [
+        "The meaning of the training-data ratio and its physical units.",
+        "The phosphorus chemical form and laboratory extraction method represented by the model feature.",
+        "A documented unit conversion linking source measurements to the model feature.",
+        "Georeferenced records with sampling date, depth, method, and reuse permission."
+      ],
+      "reason": "The training source describes this feature only as a nutrient-content ratio; the model-compatible definition and measurement units remain unverified."
+    },
+    "K": {
+      "model_definition": "ratio of Potassium content in soil",
+      "model_units": null,
+      "training_source_doi": "10.6084/m9.figshare.26308696.v2",
+      "source_eligibility": false,
+      "missing_requirements": [
+        "The meaning of the training-data ratio and its physical units.",
+        "The potassium fraction and laboratory extraction method represented by the model feature.",
+        "A documented unit conversion linking source measurements to the model feature.",
+        "Georeferenced records with sampling date, depth, method, and reuse permission."
+      ],
+      "reason": "The training source describes this feature only as a nutrient-content ratio; the model-compatible definition and measurement units remain unverified."
+    }
+  },
+  "dataset_coverage": {
+    "dataset": "ISRIC SoilGrids 2.0",
+    "license": "Creative Commons Attribution 4.0 International (CC BY 4.0)",
+    "raster_grid_cells": 5554332,
+    "wgs84_bounds": [
+      75.072245,
+      8.0,
+      82.049834,
+      14.0
+    ],
+    "point_sample_file_installed": false,
+    "no_coverage": "Points outside the installed WGS84 bounds or in zero/NoData raster cells return unavailable. The report counts missing cells but does not calculate polygon boundaries for scattered gaps."
+  },
+  "climate_coverage": {
+    "installed": true,
+    "status": "available",
+    "dataset_name": "NASA POWER meteorological monthly normals",
+    "source": "NASA POWER regional monthly service; meteorology from GMAO MERRA-2",
+    "license": "NASA Earth science data are shared under NASA's full-and-open data policy; cite NASA POWER and its source dataset. Do not imply NASA endorsement.",
+    "context_only": true,
+    "reference_period": {
+      "start_year": 1991,
+      "end_year": 2020
+    },
+    "grid_cells": 180,
+    "valid_grid_cells": 180,
+    "missing_grid_cells": 0,
+    "valid_percent_of_installed_grid": 100.0,
+    "grid_center_bounds_wgs84": [
+      75.625,
+      7.5,
+      82.5,
+      14.5
+    ],
+    "grid_resolution_degrees": {
+      "latitude": 0.5,
+      "longitude": 0.625
+    },
+    "maximum_match_distance_m": 50000,
+    "parameters": {
+      "temperature_c": {
+        "units": "°C",
+        "valid_month_values": 2160,
+        "cells_with_any_valid_month": 180,
+        "cells_with_all_months": 180,
+        "coverage_percent_of_installed_grid": 100.0,
+        "possible_month_values": 2160,
+        "valid_percent_of_month_values": 100.0,
+        "missing_cells_without_any_valid_month": 0,
+        "complete_12_month_cells": 180
+      },
+      "relative_humidity_pct": {
+        "units": "%",
+        "valid_month_values": 2160,
+        "cells_with_any_valid_month": 180,
+        "cells_with_all_months": 180,
+        "coverage_percent_of_installed_grid": 100.0,
+        "possible_month_values": 2160,
+        "valid_percent_of_month_values": 100.0,
+        "missing_cells_without_any_valid_month": 0,
+        "complete_12_month_cells": 180
+      },
+      "precipitation_mm_month": {
+        "units": "mm/month",
+        "valid_month_values": 2160,
+        "cells_with_any_valid_month": 180,
+        "cells_with_all_months": 180,
+        "coverage_percent_of_installed_grid": 100.0,
+        "possible_month_values": 2160,
+        "valid_percent_of_month_values": 100.0,
+        "missing_cells_without_any_valid_month": 0,
+        "complete_12_month_cells": 180
+      }
+    },
+    "no_coverage": "A point has no climate lookup when it is farther than the configured maximum match distance from every installed grid cell. This describes point lookup limits, not the percentage of farms or land covered."
+  },
+  "rasters": [
+    {
+      "property": "ph",
+      "file": "soilgrids_ph_0-5cm_mean_tamil-nadu-extent.tif",
+      "units": "pH",
+      "depth_cm": [
+        0,
+        5
+      ],
+      "resolution_m": 250,
+      "crs": "PROJCS[\"unknown\",GEOGCS[\"unknown\",DATUM[\"WGS_1984\",SPHEROID[\"WGS 84\",6378137,298.257223563,AUTHORITY[\"EPSG\",\"7030\"]],AUTHORITY[\"EPSG\",\"6326\"]],PRIMEM[\"Greenwich\",0],UNIT[\"Degree\",0.0174532925199433]],PROJECTION[\"Interrupted_Goode_Homolosine\"],PARAMETER[\"central_meridian\",0],PARAMETER[\"false_easting\",0],PARAMETER[\"false_northing\",0],UNIT[\"metre\",1,AUTHORITY[\"EPSG\",\"9001\"]],AXIS[\"Easting\",EAST],AXIS[\"Northing\",NORTH]]",
+      "width": 2212,
+      "height": 2511,
+      "grid_cells": 5554332,
+      "valid_nonzero_cells": 3235920,
+      "missing_cells": 2318412,
+      "valid_percent_of_grid": 58.2594,
+      "wgs84_bounds": [
+        75.072245,
+        8.0,
+        82.049834,
+        14.0
+      ]
+    },
+    {
+      "property": "total_nitrogen",
+      "file": "soilgrids_nitrogen_0-5cm_mean_tamil-nadu-extent.tif",
+      "units": "cg/kg",
+      "depth_cm": [
+        0,
+        5
+      ],
+      "resolution_m": 250,
+      "crs": "PROJCS[\"unknown\",GEOGCS[\"unknown\",DATUM[\"WGS_1984\",SPHEROID[\"WGS 84\",6378137,298.257223563,AUTHORITY[\"EPSG\",\"7030\"]],AUTHORITY[\"EPSG\",\"6326\"]],PRIMEM[\"Greenwich\",0],UNIT[\"Degree\",0.0174532925199433]],PROJECTION[\"Interrupted_Goode_Homolosine\"],PARAMETER[\"central_meridian\",0],PARAMETER[\"false_easting\",0],PARAMETER[\"false_northing\",0],UNIT[\"metre\",1,AUTHORITY[\"EPSG\",\"9001\"]],AXIS[\"Easting\",EAST],AXIS[\"Northing\",NORTH]]",
+      "width": 2212,
+      "height": 2511,
+      "grid_cells": 5554332,
+      "valid_nonzero_cells": 3236222,
+      "missing_cells": 2318110,
+      "valid_percent_of_grid": 58.2648,
+      "wgs84_bounds": [
+        75.072245,
+        8.0,
+        82.049834,
+        14.0
+      ]
+    }
+  ],
+  "model_input_coverage": {
+    "N": {
+      "compatible_locations": 0,
+      "coverage_percent_of_installed_grid": 0.0,
+      "missing_compatible_cells": 5554332,
+      "missing_compatible_percent_of_installed_grid": 100.0,
+      "exact_measurements": 0,
+      "spatial_estimates": 0,
+      "status": "unavailable",
+      "reason": "The training source describes this feature only as a nutrient-content ratio; the model-compatible definition and measurement units remain unverified."
+    },
+    "P": {
+      "compatible_locations": 0,
+      "coverage_percent_of_installed_grid": 0.0,
+      "missing_compatible_cells": 5554332,
+      "missing_compatible_percent_of_installed_grid": 100.0,
+      "exact_measurements": 0,
+      "spatial_estimates": 0,
+      "status": "unavailable",
+      "reason": "The training source describes this feature only as a nutrient-content ratio; the model-compatible definition and measurement units remain unverified."
+    },
+    "K": {
+      "compatible_locations": 0,
+      "coverage_percent_of_installed_grid": 0.0,
+      "missing_compatible_cells": 5554332,
+      "missing_compatible_percent_of_installed_grid": 100.0,
+      "exact_measurements": 0,
+      "spatial_estimates": 0,
+      "status": "unavailable",
+      "reason": "The training source describes this feature only as a nutrient-content ratio; the model-compatible definition and measurement units remain unverified."
+    }
+  },
+  "all_three_npk_coverage_percent_of_installed_grid": 0.0,
+  "installed_grid_locations_without_usable_npk_percent": 100.0,
+  "independent_test_locations": null,
+  "accuracy_metrics": null,
+  "limitations": [
+    "The installed SoilGrids rasters provide pH and total nitrogen, not compatible model N/P/K measurements.",
+    "The training CSV has no coordinates; its source describes N/P/K as nutrient-content ratios but does not document units or nutrient forms.",
+    "No compatible georeferenced point-sample dataset is installed; no independent geographic accuracy evaluation can be performed.",
+    "Coverage percentages use cells in the installed raster grid as the denominator, not all possible map locations."
+  ]
+}

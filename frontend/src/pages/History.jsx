@@ -67,11 +67,14 @@ export default function History() {
         </div>
         {loading ? <p className="muted">Loading farmer sessions…</p> :
           farmerSessions.length ? <div className="table-wrap"><table>
-            <thead><tr><th>Date</th><th>Language</th><th>District</th><th>Soil choice</th><th>Water</th><th>Reported problem</th><th>Goal</th><th>Crop model status</th></tr></thead>
+            <thead><tr><th>Date</th><th>Language</th><th>District</th><th>Field location</th><th>Soil choice</th><th>Water</th><th>Reported problem</th><th>Goal</th><th>Crop model status</th></tr></thead>
             <tbody>{farmerSessions.map((session) => <tr key={session.id}>
               <td>{new Date(session.timestamp).toLocaleString()}</td>
               <td>{session.language === "ta" ? "தமிழ்" : "English"}</td>
               <td>{session.district}</td>
+              <td>{session.result?.risk_context?.field_location
+                ? `${session.result.risk_context.field_location.latitude.toFixed(5)}, ${session.result.risk_context.field_location.longitude.toFixed(5)}`
+                : "—"}</td>
               <td>{readableChoice(session.soil_choice)}</td>
               <td>{readableChoice(session.water_choice)}</td>
               <td>{readableChoice(session.weather_problem)}</td>

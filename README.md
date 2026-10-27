@@ -1,8 +1,8 @@
-# SeasonSense AI - Crop Recommendation Application
+# Ulavurai - Crop Recommendation Application
 
-SeasonSense AI provides a FastAPI API and React/Vite dashboard using the
-existing trained crop recommendation model. The backend loads the saved model;
-it does not retrain it on startup.
+Ulavurai provides a FastAPI API and React/Vite dashboard using a trained crop
+recommendation model. The backend loads the saved model; it does not retrain it
+on startup.
 
 ## Dataset
 
@@ -49,127 +49,19 @@ interactive API documentation is at `http://localhost:8000/docs`.
 
 ## Authentication and deployment
 
-The dashboard and all API operations other than `GET /health` require a
-Supabase-authenticated account. Create a Supabase project, then copy its
-Project URL and publishable key from **Project Settings → API** (or the API
-Keys page). Never use a service-role/secret key in the browser or in these
-settings. Copy `frontend/.env.example` to `frontend/.env.local` and set:
+The dashboard and protected API operations require a Supabase-authenticated
+account. The frontend uses the project URL and publishable key; the backend
+uses `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` to validate bearer tokens
+against the Supabase Auth user endpoint. A service-role/secret key is not
+required. Copy the ignored local templates `.env.example` and
+`frontend/.env.example` for local configuration. For the Docker-free
+single-project Vercel production setup, required settings, build commands,
+manual hosting steps, and smoke checks are in [DEPLOYMENT.md](./DEPLOYMENT.md).
 
-```text
-VITE_SUPABASE_URL=https://YOUR_PROJECT_ID.supabase.co
-VITE_SUPABASE_PUBLISHABLE_KEY=YOUR_SUPABASE_PUBLISHABLE_KEY
-VITE_API_BASE_URL=http://localhost:8000
-```
-
-For local development, copy the root `.env.example` to `.env` and set
-`SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY`; FastAPI loads this file at
-startup. Copy the frontend template to `frontend/.env.local`; Vite loads that
-file automatically. Never put a Supabase secret/service-role key in either
-file. These local environment files are ignored by Git.
-
-The backend validates bearer tokens using the Supabase Auth user endpoint and
-the publishable key. `SUPABASE_JWKS_URL` can be set for deployments that use
-JWT/JWKS verification; the current backend does not read that setting.
-
-To set backend values directly in PowerShell instead of using `.env`:
-
-```powershell
-$env:SUPABASE_URL = "https://YOUR_PROJECT_ID.supabase.co"
-$env:SUPABASE_PUBLISHABLE_KEY = "YOUR_SUPABASE_PUBLISHABLE_KEY"
-$env:CORS_ALLOWED_ORIGINS = "http://localhost:5173"
-python -m uvicorn backend.main:app --reload
-```
-
-Set the following on the backend host. `SUPABASE_PUBLISHABLE_KEY` is the same
-public key used by the frontend; the API validates each bearer token against
-Supabase Auth and does not need a service-role key.
-
-```text
-SUPABASE_URL=https://YOUR_PROJECT_ID.supabase.co
-SUPABASE_PUBLISHABLE_KEY=YOUR_SUPABASE_PUBLISHABLE_KEY
-APP_ENV=production
-CORS_ALLOWED_ORIGINS=https://YOUR_PRODUCTION_DOMAIN
-```
-
-In Supabase **Authentication → URL Configuration**, set the Site URL to the
-production frontend URL. Add the production URL and its `/**` path pattern to
-the allowed Redirect URLs, and add `http://localhost:5173/**` for local
-development. Enable email confirmation under the email provider settings if
-you want verification links; signup displays a verification notice until the
-user confirms. The auth redirect returns to the app root.
-
-Deploy the Vite frontend and FastAPI backend together from the repository root
-on Vercel. The root `vercel.json` builds `frontend/` as a static site and
-`api/index.py` as a Python function; `/api/*` requests are routed to the
-existing FastAPI application in `backend/main.py`. Its existing routers keep
-the authenticated predictions, farmer guidance, model information, and
-user-specific history endpoints. The model, metadata, and dataset are loaded
-using paths resolved from the backend source file.
-
-In Vercel, import the repository and keep the project root directory set to
-the repository root (not `frontend/`). Use the Other framework preset if
-Vercel does not detect the mixed frontend/backend project automatically.
-`vercel.json` defines the frontend build and API routing.
-
-Set these environment variables for Production, Preview, and Development as
-needed:
-
-```text
-VITE_SUPABASE_URL=https://YOUR_PROJECT_ID.supabase.co
-VITE_SUPABASE_PUBLISHABLE_KEY=YOUR_SUPABASE_PUBLISHABLE_KEY
-SUPABASE_URL=https://YOUR_PROJECT_ID.supabase.co
-SUPABASE_PUBLISHABLE_KEY=YOUR_SUPABASE_PUBLISHABLE_KEY
-DATABASE_URL=YOUR_HOSTED_POSTGRESQL_CONNECTION_STRING
-APP_ENV=production
-```
-
-The frontend API base defaults to `/api` in production; leave
-`VITE_API_BASE_URL` unset in Vercel. Do not set it to `localhost` or a Render
-URL. `DATABASE_URL` must be a hosted PostgreSQL connection string because
-Vercel functions do not provide persistent local SQLite storage. Use your
-database provider's serverless-compatible connection/pooler URL. Keep database
-credentials server-side and never put them in `VITE_*` variables. The
-Supabase publishable key is intended for the frontend; do not expose a
-Supabase secret/service-role key in frontend or environment examples.
-
-The API health endpoint and interactive documentation are available at
-`/api/health` and `/api/docs`. Protected operations require a Supabase session.
-After deploying, verify the health endpoint, sign-in, and authenticated
-prediction/history flows in the Vercel deployment.
-
-Existing local history in `predictions.db` is not copied automatically. To
-preserve it, run the migration from the project root on a machine that can
-reach the configured PostgreSQL database:
-
-```powershell
-$env:DATABASE_URL = "postgresql://<user>:<password>@<host>/<database>?sslmode=require"
-python -m backend.migrate_history
-```
-
-The migration is idempotent, preserves existing record IDs and user IDs when
-available, and does not modify the SQLite source file.
-
-A root-level `Dockerfile` also packages the API, saved model, metrics, and
-dataset for local Docker testing or a Docker-capable backend host. Build it
-from the project root:
-
-```powershell
-docker build -t seasonsense-api .
-```
-
-For a separate production backend host, configure `SUPABASE_URL`,
-`SUPABASE_PUBLISHABLE_KEY`, `APP_ENV=production`, `CORS_ALLOWED_ORIGINS`, and
-`DATABASE_URL` in that host. `PORT` is supplied by many container hosts; the
-image defaults to port 8000 when it is absent. Production CORS origins must be
-explicit HTTPS origins without a path or wildcard.
-
-The container stores history at `/data/predictions.db` by default. Attach a
-persistent writable disk at `/data` to preserve history across restarts. SQLite
-is appropriate only for one backend instance with persistent local storage;
-use a managed database before scaling to multiple instances or using ephemeral
-storage. `DATABASE_PATH` can override the SQLite file path if the host mounts
-persistent storage elsewhere. Ephemeral function/container filesystems do not
-provide durable history storage; hosted PostgreSQL is recommended.
+Production history must use hosted PostgreSQL; local SQLite is for development
+only. Existing local history in `predictions.db` is not migrated automatically.
+If you intend to preserve it, see the migration instructions in
+[DEPLOYMENT.md](./DEPLOYMENT.md).
 
 ## Existing model artifacts
 
@@ -193,33 +85,133 @@ analysis and out-of-training-range warnings.
   context only; they are not Random Forest inputs or verified external data.
   Successful predictions are saved to `predictions.db` locally or to the
   PostgreSQL database selected by `DATABASE_URL`.
+- `POST /predict/preview` provides authenticated what-if recommendations
+  without writing prediction history.
+- `GET /model/crop-calendar` returns the existing TNAU crop duration reference.
+  The field toolkit presents a general planning timeline, not region-specific
+  sowing months or fertilizer instructions.
 - `POST /farmer-guide/predict` saves Tamil/English farmer-guide choices in the
   configured history database. Without the seven actual model inputs, it
   returns farmer-situation guidance and never guesses a crop. The optional
   `model_inputs` object accepts N/P/K, pH, temperature, humidity, and rainfall;
   when supplied, it uses the existing Random Forest model and returns the
   model-ranked top three and their probabilities.
+- `POST /geospatial/soil-lookup` accepts latitude/longitude and checks for the
+  selected cell in the locally stored SoilGrids GeoTIFFs. The authenticated
+  soil-only lookup uses the raster CRS and pixel only and does not substitute
+  a nearby pixel. Dataset provenance, coverage, units, resolution, depth, and
+  limitations are documented in `backend/data/soil/README.md`.
+- `GET /geospatial/climate-lookup?latitude=...&longitude=...` reads the
+  optional locally installed NASA POWER monthly climate grid. It makes no
+  network request and returns historical monthly normals with the nearest
+  grid-cell coordinates and actual distance. These values are shown as
+  context only; none are inserted into the Random Forest inputs.
+- The Expert Advisor map auto-fill calls the authenticated local soil and
+  climate lookup routes. It does not call weather or reverse-geocoding
+  providers. Map imagery itself still uses online tile providers.
+- Install the optional climate context dataset explicitly, from the project
+  root, with `python scripts/prepare_climate_data.py`. The installer fetches
+  NASA POWER regional monthly data for 1991–2020, saves resumable per-parameter
+  downloads under `backend/data/climate/downloads/`, and creates
+  `backend/data/climate/nasa_power_monthly_normals_1991_2020.json`. No data is
+  downloaded at application startup or during normal local lookup. The NASA
+  POWER meteorological grid has 0.5° latitude × 0.625° longitude spacing
+  (roughly 55–69 km in this region); matching is limited to 50 km and the
+  selected grid-cell distance is displayed. The source provides monthly mean
+  2 m temperature, monthly mean relative humidity, and monthly precipitation
+  accumulation computed from its monthly mean daily precipitation rate.
+  NASA Earth science data are shared under its full-and-open data policy;
+  cite NASA POWER and GMAO MERRA-2, and do not imply NASA endorsement.
+  The installer records dataset provenance, retrieval time, source parameter
+  hashes, units, reference period, and geographic coverage.
+- `GET /location-data?latitude=...&longitude=...` (published as
+  `/api/location-data` on Vercel) independently returns the local soil result
+  and current Open-Meteo model weather context, plus an optional nearby place
+  label from OpenStreetMap Nominatim. A provider failure for one source does
+  not discard the other source's result. The authenticated backend sends the
+  selected coordinates to these public providers; no API key is needed.
+  Open-Meteo responses are cached for five minutes by rounded coordinates;
+  successful place labels are cached for 30 days and requests to Nominatim
+  are rate-limited to at most one per second per backend process. Open-Meteo
+  API data are CC BY 4.0 and require the attribution shown with displayed
+  weather. Place names link to the OpenStreetMap copyright page and include
+  © OpenStreetMap contributors attribution; the provider name links to
+  Nominatim. Nominatim has a public-use policy
+  and limited capacity; use a suitable hosted geocoder for higher-volume
+  deployments. Place labels are geographic context, not soil or model data.
+  Open-Meteo's free API is limited to non-commercial use and published request
+  limits; use an appropriate commercial plan if this app is operated
+  commercially.
 - `GET /health`, `/model/metrics`, `/model/features`, `/model/importance`,
   `/crops`, and `/history`; `DELETE /history` clears saved history.
-- The interface has Expert Advisor and Easy Farmer Guide tabs. Expert pages for
-  overview, measured prediction, results, analytics, history, and project
-  information remain available. The farmer guide provides a Tamil-first
-  six-step flow, English switch, Tamil Nadu district selection, soil/water/
-  reported-weather/goal choices, tailored safe general actions, and browser
+- The Expert Advisor map uses map clicks or browser geolocation to select
+  coordinates locally. A place name can be entered manually; there is no
+  reverse-geocoding request in its auto-fill flow. A valid local SoilGrids pH
+  estimate may fill `ph`. Total nitrogen is not compatible with the model's
+  N input, and no compatible local N/P/K soil dataset is installed, so those
+  fields remain manual. NASA POWER historical monthly climate normals can be
+  installed and displayed as context, but temperature, humidity, and rainfall
+  remain manual model inputs because the training CSV does not document their
+  periods or aggregation. The older authenticated `/location-data` route is
+  separate from this flow and still calls its documented live providers.
+  This does not make the entire application offline: Supabase authentication,
+  the online map basemap, and the separate Field Toolkit forecast still use
+  network services. The local dataset lookup itself makes no outbound
+  data-provider calls.
+  The local soil response reports N, P, and K availability separately and
+  refuses to use candidate nutrient measurements unless their definitions and
+  units can be matched to the model. The installed CSV matches the ICFA
+  Figshare dataset (DOI `10.6084/m9.figshare.26308696.v2`), whose metadata only
+  defines N/P/K as nutrient-content ratios; it does not specify units,
+  chemical/extraction form, depth, or locations. No compatible open
+  georeferenced N/P/K data source with verified reuse terms was found. No NPK
+  installer is provided; the existing SoilGrids setup script installs pH and
+  total nitrogen only. Generate the local grid-coverage report with
+  `python -m scripts.report_npk_coverage --output backend/data/soil/npk_coverage_report.json`.
+  The SoilGrids pH mapped estimate may fill `ph`; total soil nitrogen is displayed
+  as context only in the backend lookup and is not validated as equivalent to
+  the model's N feature. The two SoilGrids extracts can be recreated during
+  development with `python scripts/prepare_geospatial_data.py`; map lookups
+  never download data. The Farmer Guide retains
+  the chosen coordinates and can show the locally available soil values.
+  Expert pages for overview, measured prediction, results, analytics, history,
+  field toolkit, and project information remain available. The farmer guide
+  provides a Tamil-first six-step flow, English switch, Tamil Nadu district
+  selection, soil/water/reported-weather/goal choices, tailored safe actions, and browser
   speech playback where supported. After the six questions, farmers choose
   either Quick Farmer Guidance or AI Crop Recommendation. Quick Guidance is
   general situation advice only and never claims a model-backed crop.
+- The Easy Farmer Guide also offers a separate Tamil-first simple crop
+  recommendation form at the start of the section. It accepts a searchable
+  Tamil Nadu district, farming issue, goal, and optional irrigation, season,
+  sowing month, and soil type without asking for laboratory N/P/K or weather
+  values. `POST /farmer-guide/crop-recommendations` ranks three options using
+  only the existing TNAU crop water-requirement and duration table in
+  `backend/data/farmer_crop_rules.json`. The ranking is provisional and
+  advisory, not a Random Forest prediction. District-level soil/climate data,
+  local sowing windows, soil compatibility rules, costs, and current prices
+  are not installed; those factors are shown as unavailable or excluded from
+  ranking rather than inferred.
 - AI Crop Recommendation requires all seven measured Random Forest inputs:
   `N`, `P`, `K`, `temperature`, `humidity`, `ph`, and `rainfall`. The farmer
   form displays ranges and example values derived from the existing training
   CSV; examples are explicitly not the farmer's own measurements. No values
   are inferred from district, soil selection, water availability, or reported
-  conditions. Numeric values are sent as entered; the application performs no
+  conditions. Optional map estimates are labeled and editable; verify them
+  before use. Numeric values are sent as entered; the application performs no
   unit conversion, so farmers should confirm that report units match the model
   inputs. The measured-input request uses the same shared recommendation
   service as the Expert Advisor and returns the same model result for identical
   inputs. Non-model Expert fields and farmer selections are saved as contextual
   information only.
+- The field toolkit includes what-if sliders with probability score bars,
+  optional numeric voice entry where browser speech recognition is supported,
+  an interactive satellite map for marking a forecast location or opting in to
+  browser geolocation, a seven-day Open-Meteo forecast, a user-assumption
+  revenue scenario, broad companion-crop ideas, a sourced duration reference,
+  and browser print-to-PDF. Marked coordinates are sent to Open-Meteo only when
+  the user requests a forecast; browser geolocation is optional. Current
+  weather is not a long-term climate or annual rainfall substitute.
 
 The held-out test accuracy (99.32%) is read from `metrics.json`; it is never
 hard-coded in the frontend and applies to the saved model's held-out evaluation,
@@ -231,12 +223,27 @@ substitute for local agronomic advice.
 
 ## Current limitations
 
-- No live weather service is integrated.
-- No live market-price service is integrated. A price entered by an Expert user
-  is user-provided and is not verified.
-- No yield prediction model is integrated.
-- No district-specific soil database or automatic soil/weather measurement
-  source is integrated.
+- There is no live market-price service or yield-prediction model. The toolkit's
+  price, yield, area, and cost fields are user-provided scenario assumptions.
+- The installed SoilGrids regional extract is a 250 m mapped prediction, not a
+  field test; its pH is the only soil model input currently autofilled.
+  Coverage is a WGS84 bounding rectangle (76–81°E, 8–14°N), includes areas
+  outside Tamil Nadu, and contains unavailable pixels. Compatible N/P/K
+  fertilizer measurements remain unavailable and must be entered manually.
+  Historical climate normals are approximate gridded context, not field or
+  current weather observations and not compatible with undocumented model
+  feature periods. See `backend/data/soil/README.md`.
+- The crop CSV contains no images, disease labels, sowing dates, or location
+  labels. It cannot train an image-diagnosis model or support region-specific
+  sowing calendars.
+- The simple farmer crop ranking uses the TNAU water-requirement table as a
+  relative comparison. Its water classes are tertiles within that table, not
+  universal water thresholds; its totals and durations are not district-
+  specific field measurements. Source publication update dates are not
+  available in the installed reference. Yield, profit, pest resistance, and
+  local seasonal suitability are not predicted.
+- Companion-crop suggestions are broad educational ideas, not validated crop
+  compatibility recommendations for a specific location or variety.
 - Quick Farmer Guidance works without measurements but does not provide a
   model-backed crop prediction.
 - AI Crop Recommendation requires all seven measured inputs to the existing
@@ -247,6 +254,8 @@ substitute for local agronomic advice.
 ## Re-run training (optional)
 
 The existing model is already trained. To intentionally rebuild the artifact
-from the dataset later, run `python train.py`. It compares five classifiers,
+from the supplied CSV, run
+`python train.py --dataset datasets/Crop_recommendation.csv --output-dir models`.
+It compares five classifiers,
 selects using validation macro F1 (accuracy breaks ties), and writes model and
 metrics files into `models/`. The application itself never invokes this script.

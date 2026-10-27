@@ -5,7 +5,7 @@ export default function InterfaceTabs() {
   const location = useLocation();
   const farmerActive = location.pathname.startsWith("/farmer");
   return (
-    <nav className="interface-tabs" aria-label="Choose your SeasonSense experience">
+    <nav className="interface-tabs" aria-label="Choose your Ulavurai experience">
       <Link to="/predict" aria-current={!farmerActive ? "page" : undefined} className={`interface-tab${!farmerActive ? " active" : ""}`}>
         <BookOpenCheck size={19} />
         <span><strong>Expert Advisor</strong><small>நிபுணர் ஆலோசனை</small></span>

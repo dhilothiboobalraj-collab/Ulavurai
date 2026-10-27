@@ -1,0 +1,58 @@
+{
+  "dataset_name": "ISRIC SoilGrids 2.0",
+  "source": "ISRIC World Soil Information",
+  "citation": "Poggio, L., de Sousa, L. M., Batjes, N. H., Heuvelink, G. B. M., Kempen, B., Ribeiro, E., and Rossiter, D. (2021). SoilGrids 2.0: producing soil information for the globe with quantified spatial uncertainty. SOIL, 7, 217–240. https://doi.org/10.5194/soil-7-217-2021",
+  "license": "Creative Commons Attribution 4.0 International (CC BY 4.0)",
+  "source_url": "https://soilgrids.org/",
+  "wcs_endpoint": "https://maps.isric.org/mapserv",
+  "dataset_version": "SoilGrids 2.0 (2021 publication)",
+  "wcs_request": "WCS 2.0.1 GetCoverage; WGS84 subset reprojected to EPSG:152160",
+  "coverage": "WGS84 request extent longitude 76–81°E and latitude 8–14°N; includes Tamil Nadu and adjacent areas and is not clipped to the state boundary.",
+  "spatial_resolution_m": 250,
+  "grid": {
+    "width": 2212,
+    "height": 2511,
+    "output_crs": "Interrupted Goode Homolosine (WCS output CRS URI EPSG:152160)"
+  },
+  "export_pixel_size_m": {
+    "x": 295.42,
+    "y": 266.0
+  },
+  "nodata_convention": "The downloaded WCS GeoTIFFs do not declare a NoData tag. Zero-valued pixels are treated as unavailable, not as soil measurements.",
+  "properties": {
+    "ph": {
+      "file": "soilgrids_ph_0-5cm_mean_tamil-nadu-extent.tif",
+      "wcs_map": "phh2o",
+      "coverage_id": "phh2o_0-5cm_mean",
+      "units": "pH",
+      "value_type": "mapped_estimate",
+      "soil_depth_cm": [
+        0,
+        5
+      ],
+      "scale_factor": 0.1,
+      "raw_encoding": "pH multiplied by 10",
+      "limitations": [
+        "A modelled SoilGrids pixel, not a field or laboratory measurement.",
+        "Use as a contextual estimate only; verify with a field soil test before agronomic decisions.",
+        "No uncertainty raster is included in this extract, so no cell-specific confidence interval is reported."
+      ]
+    },
+    "total_nitrogen": {
+      "file": "soilgrids_nitrogen_0-5cm_mean_tamil-nadu-extent.tif",
+      "wcs_map": "nitrogen",
+      "coverage_id": "nitrogen_0-5cm_mean",
+      "units": "cg/kg",
+      "value_type": "mapped_estimate",
+      "soil_depth_cm": [
+        0,
+        5
+      ],
+      "raw_encoding": "SoilGrids nitrogen layer value in centigrams per kilogram",
+      "limitations": [
+        "This total-nitrogen concentration is not a validated equivalent of the crop model's N feature; it is excluded from model inputs.",
+        "A modelled SoilGrids pixel, not a field or laboratory measurement."
+      ]
+    }
+  }
+}

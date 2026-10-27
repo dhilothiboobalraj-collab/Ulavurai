@@ -1,22 +1,17 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "framework": null,
+  "framework": "fastapi",
   "installCommand": "npm --prefix frontend ci",
   "buildCommand": "npm --prefix frontend run build",
-  "outputDirectory": "frontend/dist",
   "functions": {
-    "api/index.py": {
-      "includeFiles": "{backend/**,models/**,datasets/**}"
+    "app.py": {
+      "maxDuration": 60,
+      "includeFiles": [
+        "models/**",
+        "datasets/**",
+        "backend/data/**",
+        "frontend/dist/**"
+      ]
     }
-  },
-  "rewrites": [
-    {
-      "source": "/api/(.*)",
-      "destination": "/api/index"
-    },
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
-    }
-  ]
+  }
 }

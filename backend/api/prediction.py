@@ -68,10 +68,26 @@ class AdvisoryContext(BaseModel):
     farmer_objective: Literal[
         "safe", "profit", "low_water", "short_duration", "other"
     ] | None = None
+    geospatial_estimate: dict[str, object] | None = None
+    weather_context: dict[str, object] | None = None
 
 
 class PredictionRequest(PredictionInput):
     advisory_context: AdvisoryContext | None = None
+
+
+@router.post("/predict/preview")
+def preview_prediction(
+    request: PredictionInput,
+    _: str = Depends(require_authenticated_user),
+) -> dict:
+    try:
+        return {"success": True, **get_predictor().predict(request.model_dump())}
+    except PredictorError as exc:
+        logger.warning("Prediction preview unavailable: %s", exc)
+        raise HTTPException(
+            status_code=503, detail="The crop recommendation service is unavailable."
+        ) from exc
 
 
 @router.post("/predict")

@@ -75,14 +75,90 @@ export default function Results() {
           <h2>Additional advisory context</h2>
           <div className="input-values">
             {Object.entries(result.advisory_context).map(([name, value]) => (
-              <div key={name}>
-                <span>{CONTEXT_LABELS[name] ?? name}</span>
-                <strong>{typeof value === "number"
-                  ? value.toLocaleString()
-                  : String(value).replaceAll("_", " ")}</strong>
-              </div>
+              !["geospatial_estimate", "weather_context"].includes(name) && (
+                <div key={name}>
+                  <span>{CONTEXT_LABELS[name] ?? name}</span>
+                  <strong>{typeof value === "number"
+                    ? value.toLocaleString()
+                    : String(value).replaceAll("_", " ")}</strong>
+                </div>
+              )
             ))}
-          </div>
+            </div>
+            {result.advisory_context.geospatial_estimate && (
+              <div className="geospatial-result-note">
+                <strong>Local geospatial data context · not model features</strong>
+                <p>Source: {result.advisory_context.geospatial_estimate.source}</p>
+                <div className="geospatial-result-sources">
+                  {Object.entries(result.advisory_context.geospatial_estimate.properties ?? {})
+                    .map(([field, property]) => (
+                      <span key={field}>
+                        {field}: {property.value} {property.units} · {property.value_type.replaceAll("_", " ")}
+                        {property.soil_depth_cm && ` · depth ${
+                          Array.isArray(property.soil_depth_cm)
+                            ? property.soil_depth_cm.join("–")
+                            : property.soil_depth_cm
+                        } cm`}
+                      </span>
+                    ))}
+                </div>
+                {Object.entries(result.advisory_context.geospatial_estimate.context_properties ?? {})
+                  .map(([name, property]) => (
+                    <p key={name}>
+                      Context only — {name.replaceAll("_", " ")}: {property.value} {property.units}
+                      {" · "}{property.value_type.replaceAll("_", " ")}
+                      {" · not used as a model input"}
+                    </p>
+                  ))}
+                {result.advisory_context.geospatial_estimate.properties
+                  && Object.keys(result.advisory_context.geospatial_estimate.properties).length > 0 && (
+                    <p>
+                      Mapped model-input estimate acknowledged:{" "}
+                      {result.advisory_context.geospatial_estimate.user_reviewed ? "Yes" : "No"}.
+                    </p>
+                  )}
+                {result.advisory_context.geospatial_estimate.unavailable_properties?.length > 0 && (
+                  <p>Not available from local soil data: {result.advisory_context.geospatial_estimate.unavailable_properties.join(", ")}.</p>
+                )}
+              </div>
+            )}
+            {result.advisory_context.weather_context && (
+              <div className="geospatial-result-note">
+                <strong>Current weather context · not Random Forest inputs</strong>
+                <p>
+                  Source: {result.advisory_context.weather_context.source}
+                  {result.advisory_context.weather_context.retrieved_at
+                    && ` · ${result.advisory_context.weather_context.retrieved_at}`}
+                </p>
+                {Object.entries(result.advisory_context.weather_context.properties ?? {})
+                  .map(([name, property]) => (
+                    <p key={name}>
+                      {property.label}: {property.value} {property.units}
+                      {" · "}{property.temporal_definition}
+                      {" · modelled estimate"}
+                    </p>
+                  ))}
+                <p>
+                  Current conditions do not establish the model’s undocumented
+                  seasonal temperature, humidity, or rainfall period.
+                </p>
+                <a
+                  href={result.advisory_context.weather_context.source_url}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Weather data by Open-Meteo.com
+                </a>
+                {" · "}
+                <a
+                  href={result.advisory_context.weather_context.license_url}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  CC BY 4.0
+                </a>
+              </div>
+            )}
           {result.advisory_context.market_price_per_quintal !== undefined && (
             <p className="muted">Price was entered by the user; it is not verified or sourced from live market data.</p>
           )}

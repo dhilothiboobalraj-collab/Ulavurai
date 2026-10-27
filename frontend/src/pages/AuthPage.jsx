@@ -4,7 +4,15 @@ import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthProvider.jsx";
 
 export default function AuthPage({ signUp = false }) {
-  const { user, loading, initializationError, configured, signIn, signUp: register } = useAuth();
+  const {
+    user,
+    loading,
+    initializationError,
+    configured,
+    signIn,
+    signUp: register,
+    resetPassword,
+  } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
@@ -13,7 +21,8 @@ export default function AuthPage({ signUp = false }) {
   const [showPassword, setShowPassword] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
+  const [notice, setNotice] = useState(location.state?.notice || "");
+  const [resetMode, setResetMode] = useState(false);
 
   useEffect(() => {
     setEmail("");
@@ -21,8 +30,9 @@ export default function AuthPage({ signUp = false }) {
     setConfirmation("");
     setShowPassword(false);
     setError("");
-    setNotice("");
-  }, [signUp]);
+    setNotice(location.state?.notice || "");
+    setResetMode(false);
+  }, [signUp, location.state?.notice]);
 
   if (loading) return <main className="auth-loading" role="status">Checking your secure session…</main>;
   if (user) return <Navigate to="/" replace />;
@@ -31,6 +41,34 @@ export default function AuthPage({ signUp = false }) {
     event.preventDefault();
     setError("");
     setNotice("");
+
+    if (resetMode) {
+      if (!configured) {
+        setError("Authentication is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY to your frontend environment.");
+        return;
+      }
+      const normalizedEmail = email.trim();
+      if (!normalizedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+        setError("Enter a valid email address to receive a password reset link.");
+        return;
+      }
+      setSubmitting(true);
+      try {
+        const { error: resetError } = await resetPassword(normalizedEmail);
+        if (resetError) throw resetError;
+        setNotice("If an account exists for this email, a password reset link has been sent. Check your inbox and spam folder.");
+      } catch (reason) {
+        const message = reason.message || "Unable to send a password reset email. Please try again.";
+        if (message.toLowerCase().includes("rate limit") || message.toLowerCase().includes("too many requests")) {
+          setError("Too many reset requests have been sent recently. Please wait a few minutes before requesting another email.");
+          return;
+        }
+        setError(message);
+      } finally {
+        setSubmitting(false);
+      }
+      return;
+    }
 
     if (!configured) {
       setError("Authentication is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY to your frontend environment.");
@@ -58,7 +96,10 @@ export default function AuthPage({ signUp = false }) {
         navigate(location.state?.from?.pathname || "/", { replace: true });
       }
     } catch (reason) {
-      setError(reason.message || "Authentication failed. Please try again.");
+      const message = reason.message?.toLowerCase() || "";
+      setError(!signUp && (message.includes("invalid login credentials") || message.includes("invalid_credentials"))
+        ? "Email or password is incorrect. Check your details, create an account if you have not registered, or reset your password."
+        : reason.message || "Authentication failed. Please try again.");
     } finally {
       setSubmitting(false);
     }
@@ -69,13 +110,13 @@ export default function AuthPage({ signUp = false }) {
       <section className="auth-card" aria-labelledby="auth-title">
         <Link to="/" className="auth-brand">
           <span className="brand-mark"><Leaf size={21} /></span>
-          <span>SeasonSense<span className="brand-ai"> AI</span></span>
+          <span>Ulavurai</span>
         </Link>
         <div className="auth-heading">
           <span className="auth-icon"><ShieldCheck size={20} /></span>
           <p className="eyebrow">YOUR SECURE CROP ADVISORY</p>
-          <h1 id="auth-title">{signUp ? "Create your account" : "Welcome back"}</h1>
-          <p>{signUp ? "Sign up to access your personalized SeasonSense dashboard." : "Sign in to continue to your SeasonSense dashboard."}</p>
+          <h1 id="auth-title">{resetMode ? "Reset your password" : signUp ? "Create your account" : "Welcome back"}</h1>
+          <p>{resetMode ? "We’ll email you a secure link to choose a new password." : signUp ? "Sign up to access your personalized Ulavurai dashboard." : "Sign in to continue to your Ulavurai dashboard."}</p>
         </div>
 
         {initializationError && <div className="alert alert-error" role="alert">Unable to restore your session: {initializationError}</div>}
@@ -93,9 +134,10 @@ export default function AuthPage({ signUp = false }) {
               onChange={(event) => setEmail(event.target.value)}
               placeholder="you@example.com"
               required
+              disabled={resetMode && submitting}
             />
           </label>
-          <label className="field">
+          {!resetMode && <label className="field">
             Password
             <span className="auth-password-wrap">
               <input
@@ -117,8 +159,8 @@ export default function AuthPage({ signUp = false }) {
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
             </span>
-          </label>
-          {signUp && (
+          </label>}
+          {signUp && !resetMode && (
             <label className="field">
               Confirm password
               <input
@@ -135,15 +177,26 @@ export default function AuthPage({ signUp = false }) {
           )}
           <button className="button button-primary button-wide auth-submit" type="submit" disabled={submitting || !configured}>
             {submitting && <LoaderCircle className="spin" size={17} />}
-            {submitting ? "Please wait…" : signUp ? "Create account" : "Sign in"}
+            {submitting ? "Please wait…" : resetMode ? "Send reset link" : signUp ? "Create account" : "Sign in"}
           </button>
         </form>
 
+        {!signUp && (
+          <p className="auth-switch">
+            <button type="button" className="auth-link-button" onClick={() => {
+              setResetMode(!resetMode);
+              setError("");
+              setNotice("");
+            }}>
+              {resetMode ? "Back to sign in" : "Forgot your password?"}
+            </button>
+          </p>
+        )}
         {!configured && <p className="auth-config-note">Set VITE_SUPABASE_URL and VITE_SUPABASE_PUBLISHABLE_KEY in frontend/.env.local to enable sign-in.</p>}
-        <p className="auth-switch">
-          {signUp ? "Already have an account?" : "New to SeasonSense?"}{" "}
+        {!resetMode && <p className="auth-switch">
+          {signUp ? "Already have an account?" : "New to Ulavurai?"}{" "}
           <Link to={signUp ? "/login" : "/signup"}>{signUp ? "Sign in" : "Create an account"}</Link>
-        </p>
+        </p>}
         <p className="auth-security-note"><ShieldCheck size={15} /> Your account is secured by Supabase Authentication.</p>
       </section>
     </main>

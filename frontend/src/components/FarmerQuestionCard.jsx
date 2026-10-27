@@ -6,12 +6,13 @@ export default function FarmerQuestionCard({
   options,
   value,
   onChange,
+  language = "en",
   columns = 2,
 }) {
   return (
     <section className="farmer-question panel" aria-labelledby="farmer-question-title">
       <div className="farmer-question-heading">
-        <p className="eyebrow">FARMER GUIDE</p>
+        <p className="eyebrow">{language === "ta" ? "விவசாயி வழிகாட்டி" : "FARMER GUIDE"}</p>
         <h1 id="farmer-question-title">{title}</h1>
         {hint && <p>{hint}</p>}
       </div>

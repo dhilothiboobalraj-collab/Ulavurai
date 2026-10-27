@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { isSupabaseConfigured, supabase } from "./supabase.js";
+import { buildResetPasswordRedirectUrl, isSupabaseConfigured, supabase } from "./supabase.js";
 
 const AuthContext = createContext(null);
 
@@ -48,6 +48,10 @@ export function AuthProvider({ children }) {
       password,
       options: { emailRedirectTo: window.location.origin },
     }),
+    resetPassword: (email) => supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: buildResetPasswordRedirectUrl(),
+    }),
+    updatePassword: (password) => supabase.auth.updateUser({ password }),
     signOut: () => supabase.auth.signOut(),
   }), [session, loading, initializationError]);
 

@@ -1,18 +1,17 @@
 [project]
-name = "seasonsense-ai-backend"
+name = "ulavurai-backend"
 version = "1.0.0"
-description = "SeasonSense AI FastAPI backend"
+description = "Ulavurai FastAPI backend"
 requires-python = ">=3.12,<3.13"
 
 dependencies = [
-    "fastapi",
-    "uvicorn",
-    "pandas",
-    "numpy",
-    "scikit-learn",
-    "joblib",
-    "pydantic",
-    "python-multipart",
-    "psycopg[binary]",
-    "python-dotenv",
+    "fastapi==0.142.2",
+    "uvicorn==0.54.0",
+    "pandas==3.0.6",
+    "numpy==2.5.3",
+    "scikit-learn==1.9.1",
+    "joblib==1.6.0",
+    "psycopg[binary]==3.3.6",
+    "python-dotenv==1.2.4",
+    "rasterio==1.5.2",
 ]

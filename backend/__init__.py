@@ -1,1 +1,1 @@
-"""SeasonSense AI API package."""
+"""Ulavurai API package."""

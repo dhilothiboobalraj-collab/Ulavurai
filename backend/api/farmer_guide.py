@@ -1,19 +1,29 @@
 import logging
 from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, ConfigDict, field_validator
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-if __package__.startswith("backend."):
+if __package__ and __package__.startswith("backend."):
     from backend.auth import require_authenticated_user
     from backend.database import DatabaseError, PredictionDatabase, get_database
     from backend.schema import FEATURES
+    from backend.services.farmer_crop_recommender import farmer_crop_recommender
+    from backend.services.location_estimate import (
+        LocationEstimateError,
+        get_location_estimate,
+    )
     from backend.services.predictor import PredictorError, get_predictor
     from backend.api.prediction import PredictionInput
 else:
     from auth import require_authenticated_user
     from database import DatabaseError, PredictionDatabase, get_database
     from schema import FEATURES
+    from services.farmer_crop_recommender import farmer_crop_recommender
+    from services.location_estimate import (
+        LocationEstimateError,
+        get_location_estimate,
+    )
     from services.predictor import PredictorError, get_predictor
     from api.prediction import PredictionInput
 
@@ -78,6 +88,8 @@ class FarmerGuideInput(BaseModel):
 
     language: Literal["ta", "en"]
     district: str
+    latitude: float | None = Field(default=None, ge=-90, le=90)
+    longitude: float | None = Field(default=None, ge=-180, le=180)
     soil_choice: Literal["red_loam", "black", "clay", "sandy", "unknown"]
     water_choice: Literal["low", "medium", "high", "rainfed"]
     weather_problem: Literal[
@@ -94,6 +106,96 @@ class FarmerGuideInput(BaseModel):
             raise ValueError("Choose a supported Tamil Nadu district.")
         return normalized
 
+    @model_validator(mode="after")
+    def require_coordinate_pair(self) -> "FarmerGuideInput":
+        if (self.latitude is None) != (self.longitude is None):
+            raise ValueError("Latitude and longitude must be provided together.")
+        return self
+
+
+class SimpleFarmerRecommendationInput(BaseModel):
+    model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
+
+    district: str
+    issue: Literal[
+        "low_rainfall",
+        "heavy_rainfall",
+        "low_fertility",
+        "ph_issue",
+        "pest_disease",
+        "market_profit",
+        "no_problem",
+        "other",
+    ]
+    goal: Literal[
+        "higher_yield",
+        "low_water",
+        "short_duration",
+        "lower_investment",
+        "higher_profit",
+        "improve_soil_fertility",
+    ]
+    irrigation: Literal["rainfed", "limited", "reliable"] | None = None
+    season: Literal["kharif", "rabi", "summer", "year_round"] | None = None
+    sowing_month: int | None = Field(default=None, ge=1, le=12)
+    soil_type: Literal["red_loam", "black", "clay", "sandy", "unknown"] | None = None
+    issue_description: str | None = Field(default=None, max_length=240)
+
+    @field_validator("district")
+    @classmethod
+    def known_district(cls, value: str) -> str:
+        normalized = value.strip().lower()
+        if normalized not in TAMIL_NADU_DISTRICTS:
+            raise ValueError("Choose a supported Tamil Nadu district.")
+        return normalized
+
+    @field_validator("issue_description")
+    @classmethod
+    def clean_issue_description(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        cleaned = value.strip()
+        return cleaned or None
+
+    @model_validator(mode="after")
+    def require_other_description(self) -> "SimpleFarmerRecommendationInput":
+        if self.issue == "other" and not self.issue_description:
+            raise ValueError("Describe the other farming issue.")
+        return self
+
+
+@router.get("/location-estimate")
+def farmer_location_estimate(
+    latitude: float = Query(ge=-90, le=90),
+    longitude: float = Query(ge=-180, le=180),
+    _: str = Depends(require_authenticated_user),
+) -> dict:
+    try:
+        return get_location_estimate(latitude, longitude)
+    except LocationEstimateError as exc:
+        logger.warning("Location estimate unavailable: %s", exc)
+        raise HTTPException(
+            status_code=503,
+            detail="Local soil data is unavailable. You can still enter measurements manually.",
+        ) from exc
+
+
+@router.post("/crop-recommendations")
+def simple_farmer_crop_recommendations(
+    request: SimpleFarmerRecommendationInput,
+    _: str = Depends(require_authenticated_user),
+) -> dict:
+    return farmer_crop_recommender.recommend_for_simple_inputs(
+        district=request.district,
+        issue=request.issue,
+        goal=request.goal,
+        irrigation=request.irrigation,
+        season=request.season,
+        sowing_month=request.sowing_month,
+        soil_type=request.soil_type,
+        issue_description=request.issue_description,
+    )
+
 
 @router.post("/predict")
 def farmer_predict(
@@ -102,6 +204,11 @@ def farmer_predict(
     database: PredictionDatabase = Depends(get_database),
 ) -> dict:
     selections = request.model_dump(exclude={"model_inputs"})
+    field_location = (
+        {"latitude": request.latitude, "longitude": request.longitude}
+        if request.latitude is not None and request.longitude is not None
+        else None
+    )
     result: dict
 
     if request.model_inputs is None:
@@ -124,6 +231,7 @@ def farmer_predict(
                 "soil_choice": request.soil_choice,
                 "farmer_goal": request.farmer_goal,
                 "district_profile_available": False,
+                "field_location": field_location,
             },
             "message": {
                 "ta": (
@@ -167,6 +275,7 @@ def farmer_predict(
                 "soil_choice": request.soil_choice,
                 "farmer_goal": request.farmer_goal,
                 "district_profile_available": False,
+                "field_location": field_location,
             },
             "message": {
                 "ta": (

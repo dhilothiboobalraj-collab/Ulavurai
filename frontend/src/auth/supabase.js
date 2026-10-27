@@ -1,7 +1,8 @@
 import { createClient } from "@supabase/supabase-js";
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL?.trim();
-const supabasePublishableKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY?.trim();
+const env = typeof import.meta !== "undefined" ? (import.meta.env ?? {}) : {};
+const supabaseUrl = env.VITE_SUPABASE_URL?.trim();
+const supabasePublishableKey = env.VITE_SUPABASE_PUBLISHABLE_KEY?.trim();
 
 export const isSupabaseConfigured = Boolean(supabaseUrl && supabasePublishableKey);
 
@@ -14,6 +15,28 @@ export const supabase = isSupabaseConfigured
     },
   })
   : null;
+
+export function getSupabaseFrontendOrigin() {
+  const env = typeof import.meta !== "undefined" ? (import.meta.env ?? {}) : {};
+  const configuredOrigin = (
+    env.VITE_APP_ORIGIN
+    || env.VITE_FRONTEND_URL
+    || env.VITE_SITE_URL
+    || ""
+  ).trim();
+
+  if (configuredOrigin) {
+    return configuredOrigin.replace(/\/+$/, "");
+  }
+
+  return typeof window !== "undefined" && window.location?.origin
+    ? window.location.origin.replace(/\/+$/, "")
+    : "http://localhost:5173";
+}
+
+export function buildResetPasswordRedirectUrl() {
+  return `${getSupabaseFrontendOrigin()}/reset-password`;
+}
 
 export async function getAccessToken() {
   if (!supabase) {

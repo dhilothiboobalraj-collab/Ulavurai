@@ -84,12 +84,18 @@ const FEATURES = [
     min: 0,
   },
 ];
+const EMPTY_VALUES = {};
 
 const COPY = {
   ta: {
     heading: "AI பயிர் பரிந்துரை பெற 7 அளவீடுகள்",
     hint: "இந்த ஏழு உண்மையான அளவீடுகளையே ஏற்கனவே உள்ள Random Forest பயன்படுத்துகிறது. மாவட்டம் அல்லது மண் தேர்விலிருந்து இவற்றை நாங்கள் ஊகிக்கமாட்டோம்.",
     unitNote: "அளவீடுகள் மாற்றமின்றி மாதிரிக்கு அனுப்பப்படும். அறிக்கை அலகு பொருந்துமா தெரியாவிட்டால், வேளாண்மை நிபுணரிடம் உறுதிப்படுத்துங்கள்.",
+    estimateNote: "குறிக்கப்பட்ட இடத்திற்கான உள்ளூர் மண் தரவில் உள்ள மதிப்புகள் மட்டும் நிரப்பப்பட்டுள்ளன. மூலத்தையும் அலகையும் சரிபார்த்து திருத்துங்கள். வெப்பநிலை, ஈரப்பதம், மழையை கைமுறையாக உள்ளிடுங்கள்.",
+    estimateTag: "உள்ளூர் மண் தரவு · சரிபார்க்கவும்",
+    estimateReview: "வரைபட மதிப்புகள் மண் அளவீடுகள் அல்ல என்பதைப் புரிந்து, மூலத்தையும் வரம்புகளையும் மதிப்பாய்வு செய்துள்ளேன்.",
+    estimateReviewError: "வரைபடத்திலிருந்து வந்த மண் மதிப்புகளைப் பயன்படுத்துவதற்கு முன் மதிப்பாய்வு செய்து ஒப்புதல் அளிக்கவும்.",
+    manualTag: "கைமுறையாகத் திருத்தப்பட்டது",
     reportUnit: "அறிக்கையில் உள்ள அலகையே பயன்படுத்துங்கள்.",
     trainingRange: "பயிற்சித் தரவில் காணப்பட்ட வரம்பு",
     example: "தரவுத்தொகுப்பு உதாரணம் மட்டும்",
@@ -106,6 +112,11 @@ const COPY = {
     heading: "7 measurements for an AI crop recommendation",
     hint: "The existing Random Forest uses these seven measured values. We never infer them from your district or soil selection.",
     unitNote: "Values are sent without unit conversion. If you are unsure whether your report's units match the model, check with an agriculture expert.",
+    estimateNote: "Only soil values available in the local dataset were prefilled for this point. Verify the source and units and edit as needed. Enter temperature, humidity and rainfall manually.",
+    estimateTag: "Local soil data · verify",
+    estimateReview: "I reviewed the source and limitations and understand mapped values are not field measurements.",
+    estimateReviewError: "Review and acknowledge the mapped soil estimate before using it.",
+    manualTag: "Manually entered or edited",
     reportUnit: "Use the unit printed on your report.",
     trainingRange: "Range observed in the training data",
     example: "Training-data example only",
@@ -127,6 +138,8 @@ function formatValue(value) {
 export default function FarmerMeasurements({
   language,
   initialValues,
+  estimatedValues = {},
+  estimatedProperties = {},
   onSubmit,
   onQuickGuidance,
   loading,
@@ -136,9 +149,27 @@ export default function FarmerMeasurements({
   const [missingNames, setMissingNames] = useState([]);
   const [featureMetadata, setFeatureMetadata] = useState({});
   const [metadataError, setMetadataError] = useState(false);
+  const [manuallyEditedFields, setManuallyEditedFields] = useState(() => new Set());
+  const [estimateReviewed, setEstimateReviewed] = useState(false);
   const inputRefs = useRef({});
+  const previousEstimatedFields = useRef(new Set(Object.keys(estimatedValues)));
   const tamil = language === "ta";
   const text = COPY[language];
+
+  useEffect(() => {
+    setValues((previous) => {
+      const next = { ...previous };
+      for (const name of previousEstimatedFields.current) {
+        if (!manuallyEditedFields.has(name)) delete next[name];
+      }
+      for (const [name, value] of Object.entries(initialValues ?? EMPTY_VALUES)) {
+        if (!manuallyEditedFields.has(name)) next[name] = value;
+      }
+      return next;
+    });
+    previousEstimatedFields.current = new Set(Object.keys(estimatedValues));
+    setEstimateReviewed(false);
+  }, [initialValues, estimatedValues, manuallyEditedFields]);
 
   useEffect(() => {
     let active = true;
@@ -160,6 +191,13 @@ export default function FarmerMeasurements({
   function submit(event) {
     event.preventDefault();
     setError("");
+    const unreviewedEstimate = Object.keys(estimatedValues).some(
+      (name) => !manuallyEditedFields.has(name),
+    );
+    if (unreviewedEstimate && !estimateReviewed) {
+      setError("estimate-review");
+      return;
+    }
     const missing = FEATURES
       .filter(({ name }) => values[name] === undefined || values[name] === "")
       .map(({ name }) => name);
@@ -205,6 +243,19 @@ export default function FarmerMeasurements({
         </div>
       </div>
       {metadataError && <p className="farmer-metadata-note" role="status">{text.unavailable}</p>}
+      {Object.keys(estimatedValues).length > 0 && (
+        <p className="farmer-location-estimate-note" role="note">{text.estimateNote}</p>
+      )}
+      {Object.keys(estimatedValues).some((name) => !manuallyEditedFields.has(name)) && (
+        <label className="geospatial-confirmation">
+          <input
+            type="checkbox"
+            checked={estimateReviewed}
+            onChange={(event) => setEstimateReviewed(event.target.checked)}
+          />
+          <span>{text.estimateReview}</span>
+        </label>
+      )}
       <div className="farmer-measurements-grid">
         {FEATURES.map((feature) => {
           const metadata = featureMetadata[feature.name];
@@ -217,6 +268,12 @@ export default function FarmerMeasurements({
               <span>
                 <span aria-hidden="true">{feature.icon}</span>
                 {tamil ? feature.ta : feature.en}
+                {estimatedValues[feature.name] !== undefined && !manuallyEditedFields.has(feature.name) && (
+                  <small className="farmer-estimate-tag">{text.estimateTag}</small>
+                )}
+                {manuallyEditedFields.has(feature.name) && (
+                  <small className="farmer-estimate-tag">{text.manualTag}</small>
+                )}
                 <small className="farmer-measurement-unit">
                   {tamil ? feature.taUnit : feature.enUnit}
                 </small>
@@ -234,11 +291,26 @@ export default function FarmerMeasurements({
                 aria-describedby={`${helpId}${metadata ? ` ${rangeId}` : ""}`}
                 onChange={(event) => {
                   setValues((previous) => ({ ...previous, [feature.name]: event.target.value }));
+                  setManuallyEditedFields((previous) => new Set(previous).add(feature.name));
                   setMissingNames((previous) => previous.filter((name) => name !== feature.name));
+                  setEstimateReviewed(false);
                   setError("");
                 }}
               />
               <small id={helpId}>{tamil ? feature.taHelp : feature.enHelp}</small>
+              {estimatedValues[feature.name] !== undefined
+                && !manuallyEditedFields.has(feature.name)
+                && estimatedProperties[feature.name] && (
+                  <small className="farmer-measurement-range">
+                    {estimatedProperties[feature.name].source}
+                    {" · "}{estimatedProperties[feature.name].value_type.replaceAll("_", " ")}
+                    {" · "}{estimatedProperties[feature.name].units}
+                    {estimatedProperties[feature.name].soil_depth_cm
+                      && ` · depth ${Array.isArray(estimatedProperties[feature.name].soil_depth_cm)
+                        ? estimatedProperties[feature.name].soil_depth_cm.join("–")
+                        : estimatedProperties[feature.name].soil_depth_cm} cm`}
+                  </small>
+                )}
               {metadata && (
                 <small id={rangeId} className="farmer-measurement-range">
                   {text.trainingRange}: {formatValue(metadata.min)}–{formatValue(metadata.max)}
@@ -254,7 +326,13 @@ export default function FarmerMeasurements({
       {metadataError && <p className="farmer-measurement-footnote">{text.reportUnit}</p>}
       {error && (
         <div className="farmer-measurement-error" role="alert">
-          <p>{error === "missing" ? text.missing : text.invalid}</p>
+          <p>
+            {error === "missing"
+              ? text.missing
+              : error === "estimate-review"
+                ? text.estimateReviewError
+                : text.invalid}
+          </p>
           {error === "missing" && (
             <button className="button button-secondary-large" type="button" onClick={focusMissing}>
               {text.enterMissing}
