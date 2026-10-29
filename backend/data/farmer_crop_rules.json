@@ -4,18 +4,264 @@
     "title": "Water Requirements of Agricultural Crops in Surface Irrigation Methods",
     "publisher": "Tamil Nadu Agricultural University, Agritech Portal",
     "url": "https://agritech.tnau.ac.in/agriculture/agri_irrigationmgt_waterrequirements.html",
-    "notes": "The table specifies a 5 cm depth at each irrigation and lists total water requirement and duration. Values are retained as published; they are not district-specific and are not a measure of local crop suitability."
+    "notes": "The table specifies a 5 cm depth at each irrigation and lists total water requirement and duration. Values are retained as published; they are not district-specific and are not a measure of local crop suitability.",
+    "verified_on": "2026-10-29"
+  },
+  "evidence_sources": {
+    "ragi_seasons_varieties": {
+      "title": "Crop Production: Season & Varieties — Ragi",
+      "publisher": "Tamil Nadu Agricultural University, Agritech Portal",
+      "url": "https://agritech.tnau.ac.in/agriculture/agri_seasonandvarieties_ragi.html",
+      "source_updated": "2016-05",
+      "verified_on": "2026-10-29"
+    },
+    "rice_seasons_varieties": {
+      "title": "Crop Production: Season & Varieties — Rice Seasons of Tamil Nadu",
+      "publisher": "Tamil Nadu Agricultural University, Agritech Portal",
+      "url": "https://agritech.tnau.ac.in/agriculture/agri_seasonandvarieties_rice.html",
+      "verified_on": "2026-10-29"
+    },
+    "rice_water_management": {
+      "title": "Irrigation Management — Rice",
+      "publisher": "Tamil Nadu Agricultural University, Agritech Portal",
+      "url": "https://agritech.tnau.ac.in/agriculture/agri_irrigationmgt_cereals_rice.html",
+      "verified_on": "2026-10-29"
+    },
+    "blackgram_water_management": {
+      "title": "Irrigation Management — Blackgram",
+      "publisher": "Tamil Nadu Agricultural University, Agritech Portal",
+      "url": "https://agritech.tnau.ac.in/agriculture/agri_irrigationmgt_blackgram.html",
+      "verified_on": "2026-10-29"
+    },
+    "sorghum_seasons_varieties": {
+      "title": "Crop Production: Season & Varieties — Sorghum",
+      "publisher": "Tamil Nadu Agricultural University, Agritech Portal",
+      "url": "https://agritech.tnau.ac.in/agriculture/agri_seasonandvarieties_sorghum.html",
+      "verified_on": "2026-10-29"
+    },
+    "cowpea_seasons_varieties": {
+      "title": "Crop Production: Season & Varieties — Cowpea",
+      "publisher": "Tamil Nadu Agricultural University, Agritech Portal",
+      "url": "https://agritech.tnau.ac.in/agriculture/agri_seasonandvarieties_cowpea.html",
+      "source_updated": "2016-05",
+      "verified_on": "2026-10-29"
+    },
+    "redgram_seasons_varieties": {
+      "title": "Crop Production: Season & Varieties — Redgram",
+      "publisher": "Tamil Nadu Agricultural University, Agritech Portal",
+      "url": "https://agritech.tnau.ac.in/agriculture/agri_seasonandvarieties_redgram.html",
+      "source_updated": "2016-05",
+      "verified_on": "2026-10-29"
+    }
+  },
+  "additional_evidence": {
+    "unknown_for_crops_without_specific_records": [
+      "district_and_agroclimatic_suitability",
+      "soil_type_and_soil_condition_suitability",
+      "soil_test_based_nutrient_requirements",
+      "soil_fertility_improvement_effect",
+      "crop_specific_irrigation_method_compatibility",
+      "crop_specific_rainfall_requirement",
+      "measured_local_rainfall_suitability",
+      "drought_tolerance",
+      "flood_and_waterlogging_tolerance",
+      "salinity_tolerance",
+      "soil_fertility_effect_and_nutrient_requirements",
+      "locally_validated_yield",
+      "current_local_production_cost_and_market_price"
+    ],
+    "crop_records": {
+      "ragi": {
+        "districts": {
+          "suitable": "All Tamil Nadu districts except Kanyakumari and Nilgiris, as stated on the cited TNAU page.",
+          "excluded": ["kanyakumari", "nilgiris"],
+          "source_id": "ragi_seasons_varieties"
+        },
+        "sowing_windows": [
+          {
+            "months": [12, 1],
+            "water_regime": "irrigated",
+            "varieties": ["CO 9", "CO 13", "CO (Ra) 14", "TRY 1"]
+          },
+          {
+            "months": [4, 5],
+            "water_regime": "irrigated",
+            "varieties": ["CO 9", "CO 13", "CO (Ra) 14"]
+          },
+          {
+            "months": [6, 7],
+            "water_regime": "rainfed",
+            "varieties": ["Paiyur 1", "CO 13", "CO (Ra) 14", "Paiyur 2"]
+          },
+          {
+            "months": [9, 10],
+            "water_regime": "rainfed",
+            "varieties": ["Paiyur 1", "CO 13", "CO (Ra) 14"]
+          }
+        ],
+        "variety_durations_days": {
+          "CO (Ra) 14": [105, 110],
+          "TRY 1": [102, 102],
+          "Paiyur 2": [115, 115]
+        },
+        "duration_note": "Variety-specific values on the cited page differ from the single crop duration in the general TNAU comparison table; a duration preference is not checked against ragi without a selected variety.",
+        "duration_note_id": "ragi_variety_duration_differs",
+        "source_id": "ragi_seasons_varieties"
+      },
+      "rice": {
+        "water_management": [
+          "TNAU describes maintaining shallow ponded water for specific crop stages and recommends drainage facilities for excess water.",
+          "TNAU advises that prolonged inundation during booting and maturity can harm the crop."
+        ],
+        "water_management_note_id": "rice_excess_water_management",
+        "sowing_windows": [
+          {
+            "months": [12, 1],
+            "season_name": "Navarai",
+            "duration_text": "less than 120 days",
+            "districts": ["tiruvallur", "vellore", "tiruvannamalai", "cuddalore", "viluppuram", "tiruchirappalli", "perambalur", "karur", "nagapattinam", "madurai", "theni", "salem", "namakkal", "dindigul", "dharmapuri", "coimbatore", "erode", "pudukkottai"]
+          },
+          {
+            "months": [4, 5],
+            "season_name": "Sornavari",
+            "duration_text": "less than 120 days",
+            "districts": ["tiruvallur", "vellore", "tiruvannamalai", "cuddalore", "viluppuram", "namakkal", "dharmapuri"]
+          },
+          {
+            "months": [4, 5],
+            "season_name": "Early Kar",
+            "duration_text": "less than 120 days",
+            "districts": ["tirunelveli", "kanyakumari", "thoothukudi", "erode", "coimbatore", "madurai", "theni", "dindigul", "salem", "namakkal", "dharmapuri"]
+          },
+          {
+            "months": [5, 6],
+            "season_name": "Kar",
+            "duration_text": "less than 120 days",
+            "districts": ["tirunelveli", "kanyakumari", "thoothukudi", "erode", "coimbatore", "madurai", "theni", "dindigul", "salem", "namakkal", "dharmapuri"]
+          },
+          {
+            "months": [6, 7],
+            "season_name": "Kuruvai",
+            "duration_text": "less than 120 days",
+            "districts": ["tiruchirappalli", "perambalur", "karur", "thanjavur", "nagapattinam", "tiruvarur", "pudukkottai", "erode"]
+          },
+          {
+            "months": [8],
+            "season_name": "Samba",
+            "duration_text": "more than 145 days",
+            "districts": ["thanjavur", "tiruvarur", "nagapattinam", "mayiladuthurai", "tiruchirappalli", "cuddalore", "pudukkottai", "ariyalur", "viluppuram", "kanyakumari"]
+          },
+          {
+            "months": [9, 10],
+            "season_name": "Late Samba / Thaladi / Pishanam",
+            "duration_text": "130–135 days",
+            "district_coverage": "all rice-growing districts"
+          },
+          {
+            "months": [10, 11],
+            "season_name": "Late Thaladi / Late Pishanam",
+            "duration_text": "120–140 days, depending on season",
+            "districts": ["thanjavur", "tiruvarur", "nagapattinam", "mayiladuthurai", "tiruchirappalli", "ariyalur", "perambalur", "cuddalore", "karur", "madurai", "theni", "dindigul", "kanyakumari", "tirunelveli", "thoothukudi"]
+          }
+        ],
+        "sowing_window_note_id": "rice_sowing_calendar_window",
+        "duration_note": "TNAU lists different rice durations by season; the general source-table duration is not used to score a short-duration goal without a selected season window.",
+        "duration_note_id": "rice_duration_varies_by_season",
+        "source_id": "rice_seasons_varieties",
+        "water_management_source_id": "rice_water_management"
+      },
+      "blackgram": {
+        "water_management": [
+          "TNAU advises irrigation at sowing and a life irrigation on the third day.",
+          "TNAU identifies flowering and pod formation as critical irrigation periods and advises avoiding water stagnation."
+        ],
+        "water_management_note_id": "blackgram_avoid_water_stagnation",
+        "source_id": "blackgram_water_management"
+      },
+      "sorghum": {
+        "sowing_windows": [
+          {
+            "months": [1, 2],
+            "season_name": "Thaipattam",
+            "districts": ["tiruchirappalli", "kancheepuram", "tiruvallur", "vellore", "tiruvannamalai", "cuddalore", "viluppuram", "coimbatore", "tiruppur", "erode", "karur", "perambalur", "ariyalur", "salem", "namakkal", "dharmapuri", "krishnagiri", "pudukkottai", "madurai", "dindigul", "theni", "ramanathapuram", "virudhunagar", "sivaganga", "tirunelveli", "thoothukudi", "kanyakumari"]
+          },
+          {
+            "months": [4, 5],
+            "season_name": "Chithiraipattam",
+            "districts": ["tiruchirappalli", "kancheepuram", "tiruvallur", "vellore", "tiruvannamalai", "cuddalore", "viluppuram", "coimbatore", "tiruppur", "erode", "karur", "perambalur", "ariyalur", "salem", "namakkal", "dharmapuri", "krishnagiri", "pudukkottai", "madurai", "dindigul", "theni", "ramanathapuram", "virudhunagar", "sivaganga", "tirunelveli", "thoothukudi", "kanyakumari"]
+          },
+          {
+            "months": [6, 7],
+            "season_name": "Adipattam",
+            "districts": ["tiruchirappalli", "kancheepuram", "tiruvallur", "vellore", "tiruvannamalai", "cuddalore", "viluppuram", "coimbatore", "tiruppur", "erode", "karur", "perambalur", "ariyalur", "salem", "namakkal", "dharmapuri", "krishnagiri", "pudukkottai", "madurai", "dindigul", "theni", "ramanathapuram", "virudhunagar", "sivaganga", "tirunelveli", "thoothukudi"]
+          },
+          {
+            "months": [9, 10],
+            "season_name": "Puratasipattam",
+            "districts": ["tiruchirappalli", "kancheepuram", "tiruvallur", "vellore", "tiruvannamalai", "cuddalore", "viluppuram", "coimbatore", "tiruppur", "erode", "karur", "perambalur", "ariyalur", "salem", "namakkal", "dharmapuri", "krishnagiri", "pudukkottai", "madurai", "dindigul", "theni", "ramanathapuram", "virudhunagar", "sivaganga", "tirunelveli", "thoothukudi"]
+          }
+        ],
+        "sowing_window_note_id": "sorghum_sowing_calendar_window",
+        "source_id": "sorghum_seasons_varieties"
+      },
+      "cowpea": {
+        "sowing_windows": [
+          {
+            "months": [6, 7, 8],
+            "season_name": "Adipattam",
+            "excluded_districts": ["kanyakumari", "nilgiris"],
+            "varieties": ["Co(CP) 7", "Paiyur 1", "VBN 1"]
+          },
+          {
+            "months": [9, 10, 11],
+            "season_name": "Purattasipattam",
+            "districts": ["vellore", "tiruvannamalai", "dharmapuri", "salem", "namakkal", "perambalur", "erode", "coimbatore", "madurai", "dindigul", "theni", "virudhunagar"],
+            "varieties": ["Co(CP) 7", "Paiyur 1"]
+          },
+          {
+            "months": [12, 1, 2],
+            "season_name": "Margazhi - Thaipattam",
+            "districts": ["kancheepuram", "tiruvallur", "vellore", "tiruvannamalai", "dharmapuri", "salem", "namakkal", "coimbatore", "erode", "madurai", "dindigul", "theni", "tiruchirappalli", "perambalur", "ariyalur", "karur", "pudukkottai", "tirunelveli", "thoothukudi"],
+            "varieties": ["Co(CP) 7", "VBN 2"]
+          }
+        ],
+        "sowing_window_note_id": "cowpea_sowing_calendar_window",
+        "source_id": "cowpea_seasons_varieties",
+        "water_and_duration_note_id": "cowpea_water_and_duration_not_in_comparison_table"
+      },
+      "redgram": {
+        "sowing_windows": [
+          {
+            "months": [5, 6],
+            "season_name": "Vaigasi Pattam",
+            "districts": ["krishnagiri", "dharmapuri", "salem", "erode", "coimbatore", "dindigul", "theni", "madurai"],
+            "varieties": ["Co (Rg) 7"]
+          },
+          {
+            "months": [6, 7, 8],
+            "season_name": "Adi / Avanipattam",
+            "districts": ["vellore", "tiruvannamalai", "salem", "namakkal", "perambalur", "ariyalur", "madurai", "dindigul", "theni", "pudukkottai", "sivaganga"],
+            "varieties": ["Co 6", "LRG 41", "Vamban 2"],
+            "date_note": "The source gives sowing dates from June 15 to July 15 and July 15 to August 15; month-only input cannot verify the exact day."
+          },
+          {
+            "months": [9, 10],
+            "season_name": "Purattasipattam",
+            "districts": ["vellore", "tiruvannamalai", "dharmapuri", "salem", "namakkal", "erode", "coimbatore", "madurai", "dindigul", "theni", "pudukkottai", "sivaganga", "perambalur", "ariyalur"],
+            "varieties": ["Co (Rg) 7", "APK 1"]
+          }
+        ],
+        "sowing_window_note_id": "redgram_sowing_calendar_window",
+        "source_id": "redgram_seasons_varieties",
+        "water_and_duration_note_id": "redgram_water_and_duration_not_in_comparison_table"
+      }
+    }
   },
   "scoring": {
-    "weights": {
-      "water_availability": 0.65,
-      "supported_goal": 0.35
-    },
+    "ranking_policy": "Use the selected supported goal as the primary factor when it is independently scored; otherwise use the reported low-water preference. Use a supported sowing-window match and other documented factors only to break ties. Never combine factors with unsupported numeric weights.",
     "water_availability_mapping": {
       "low": "prefer_lower_source_water_total",
-      "rainfed": "prefer_lower_source_water_total",
-      "medium": "prefer_middle_source_water_total",
-      "high": "prefer_higher_source_water_total"
+      "rainfed": "prefer_lower_source_water_total"
     },
     "relative_water_classes": {
       "method": "tertiles",
@@ -84,6 +330,16 @@
       "crop": "sunflower",
       "water_requirement_mm": 450,
       "duration_days": 110
+    },
+    {
+      "crop": "cowpea",
+      "water_requirement_mm": null,
+      "duration_days": null
+    },
+    {
+      "crop": "redgram",
+      "water_requirement_mm": null,
+      "duration_days": null
     }
   ]
 }

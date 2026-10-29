@@ -114,56 +114,39 @@ function VoiceValues({ features, onValues }) {
 }
 
 function WeatherCard() {
-  const [weather, setWeather] = useState(null);
+  const [climate, setClimate] = useState(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [locating, setLocating] = useState(false);
   const [selectedLocation, setSelectedLocation] = useState(null);
-  const weatherRequestId = useRef(0);
+  const climateRequestId = useRef(0);
 
-  async function loadWeather(location) {
-    const currentRequestId = ++weatherRequestId.current;
+  async function loadClimate(location) {
+    const currentRequestId = ++climateRequestId.current;
     setError("");
-    setWeather(null);
+    setClimate(null);
     setLoading(true);
     try {
-      const query = new URLSearchParams({
-        latitude: String(location.latitude),
-        longitude: String(location.longitude),
-        current: "temperature_2m,relative_humidity_2m,precipitation",
-        daily: "precipitation_sum",
-        forecast_days: "7",
-        timezone: "auto",
-      });
-      const response = await fetch(`https://api.open-meteo.com/v1/forecast?${query}`);
-      if (!response.ok) throw new Error(`Weather service returned ${response.status}.`);
-      const result = await response.json();
-      if (!result.current || !result.daily) {
-        throw new Error("Weather service returned incomplete current conditions.");
-      }
-      if (weatherRequestId.current === currentRequestId) {
-        setWeather({
-          latitude: location.latitude,
-          longitude: location.longitude,
-          current: result.current,
-          daily: result.daily,
-        });
+      const result = await api.localClimateLookup(location.latitude, location.longitude);
+      if (climateRequestId.current === currentRequestId) {
+        setClimate(result);
       }
     } catch (reason) {
-      if (weatherRequestId.current === currentRequestId) {
-        setError(`Could not load local weather: ${errorMessage(reason)}`);
+      if (climateRequestId.current === currentRequestId) {
+        setError(`Could not load the installed local climate data: ${errorMessage(reason)}`);
       }
     } finally {
-      if (weatherRequestId.current === currentRequestId) setLoading(false);
+      if (climateRequestId.current === currentRequestId) setLoading(false);
     }
   }
 
   function selectLocation(location) {
-    weatherRequestId.current += 1;
+    climateRequestId.current += 1;
     setSelectedLocation(location);
-    setWeather(null);
+    setClimate(null);
     setError("");
     setLoading(false);
+    if (location) void loadClimate(location);
   }
 
   function detectLocation() {
@@ -173,64 +156,84 @@ function WeatherCard() {
       return;
     }
     setLocating(true);
-    navigator.geolocation.getCurrentPosition(async ({ coords }) => {
+    navigator.geolocation.getCurrentPosition(({ coords }) => {
       const location = { latitude: coords.latitude, longitude: coords.longitude };
       selectLocation(location);
       setLocating(false);
-      await loadWeather(location);
     }, (reason) => {
       setError(`Location unavailable: ${reason.message}`);
       setLocating(false);
     }, { enableHighAccuracy: false, timeout: 12000, maximumAge: 300000 });
   }
 
-  const rainfall = weather?.daily?.precipitation_sum
-    ?.reduce((sum, value) => sum + (Number.isFinite(value) ? value : 0), 0);
-
   return (
     <section className="panel toolkit-card">
-      <p className="eyebrow"><MapPin size={14} /> LOCAL WEATHER</p>
-      <h2>Weather near you</h2>
-      <p className="muted">Click the satellite map to mark a field, or use your browser location. The map loads Esri imagery; marked coordinates are sent to Open-Meteo only when you request a forecast.</p>
+      <p className="eyebrow"><MapPin size={14} /> HISTORICAL LOCAL CLIMATE</p>
+      <h2>Climate context near your field</h2>
+      <p className="muted">Select a point on the satellite or normal map to query the installed historical dataset. Historical monthly averages are not live weather or a forecast.</p>
       <SatelliteLocationPicker
         selectedLocation={selectedLocation}
         onSelectLocation={selectLocation}
-        label="Satellite map of Tamil Nadu. Click to mark a location."
+        label="Interactive map. Click to select a location."
       />
       <p className="muted">
         {selectedLocation
           ? `Marked location: ${selectedLocation.latitude.toFixed(4)}, ${selectedLocation.longitude.toFixed(4)}`
-          : "Click the map to mark a location for the forecast."}
+          : "Click the map to look up local historical climate."}
       </p>
       <div className="toolkit-weather-actions no-print">
         <button className="button button-quiet" type="button" onClick={detectLocation} disabled={loading || locating}>
           <MapPin size={17} /> {locating ? "Finding your location…" : "Use my location"}
         </button>
-        <button className="button button-primary" type="button" onClick={() => loadWeather(selectedLocation)} disabled={!selectedLocation || loading || locating}>
-          <CloudSun size={17} /> {loading ? "Loading weather…" : "Load weather for marked point"}
+        <button className="button button-primary" type="button" onClick={() => selectedLocation && loadClimate(selectedLocation)} disabled={!selectedLocation || loading || locating}>
+          <CloudSun size={17} /> {loading ? "Loading local data…" : "Refresh local climate"}
         </button>
       </div>
+      {loading && <p className="muted" role="status">Reading local historical climate data…</p>}
       {error && <p className="alert alert-error" role="alert">{error}</p>}
-      {weather && (
+      {climate && (
         <>
-          <div className="toolkit-weather-values">
-            <div><span>Current temperature</span><strong>{weather.current.temperature_2m} °C</strong></div>
-            <div><span>Relative humidity</span><strong>{weather.current.relative_humidity_2m}%</strong></div>
-            <div><span>Current precipitation</span><strong>{weather.current.precipitation} mm</strong></div>
-            <div><span>Next 7 days precipitation</span><strong>{rainfall?.toFixed(1)} mm</strong></div>
-          </div>
-          <p className="muted">Coordinates: {weather.latitude.toFixed(4)}, {weather.longitude.toFixed(4)}. A short forecast is not a substitute for the model’s rainfall input or long-term climate averages.</p>
           <p className="muted">
-            These current conditions are contextual weather estimates only and
-            are not applied to the crop-model what-if inputs.
+            {climate.dataset_name} · {climate.reference_period
+              ? `${climate.reference_period.start_year}–${climate.reference_period.end_year}`
+              : "reference period unavailable"}
+            {climate.grid_resolution_degrees
+              ? ` · grid ${climate.grid_resolution_degrees.latitude}° × ${climate.grid_resolution_degrees.longitude}°`
+              : ""}
+            {climate.grid_location
+              ? ` · nearest cell ${climate.grid_location.distance_m} m away`
+              : ""}
           </p>
-          <a href="https://open-meteo.com/" target="_blank" rel="noreferrer">
-            Weather data by Open-Meteo.com
-          </a>
-          {" · "}
-          <a href="https://open-meteo.com/en/licence" target="_blank" rel="noreferrer">
-            CC BY 4.0
-          </a>
+          <p className="muted" role="status">
+            {climate.warning}
+          </p>
+          {Object.keys(climate.months).length > 0 && (
+            <div className="climate-month-grid" role="table" aria-label="Historical monthly climate normals">
+              <div className="climate-month-header" role="row">
+                <strong role="columnheader">Month</strong>
+                <strong role="columnheader">Mean temperature (°C)</strong>
+                <strong role="columnheader">Mean humidity (%)</strong>
+                <strong role="columnheader">Monthly rainfall (mm)</strong>
+              </div>
+              {Object.entries(climate.months).sort(([first], [second]) => first.localeCompare(second)).map(([month, values]) => (
+                <div className="climate-month-row" role="row" key={month}>
+                  <span role="cell">
+                    {new Intl.DateTimeFormat("en", { month: "short", timeZone: "UTC" })
+                      .format(new Date(Date.UTC(2020, Number(month) - 1, 1)))}
+                  </span>
+                  <span role="cell">{values.temperature_c ?? "Unavailable"}</span>
+                  <span role="cell">{values.relative_humidity_pct ?? "Unavailable"}</span>
+                  <span role="cell">{values.precipitation_mm_month ?? "Unavailable"}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          <p className="muted">
+            Source: {climate.source}. License: {climate.license}
+          </p>
+          {climate.source_url && (
+            <a href={climate.source_url} target="_blank" rel="noreferrer">Dataset source and attribution</a>
+          )}
         </>
       )}
     </section>
@@ -312,7 +315,7 @@ export default function FieldToolkit() {
         <div>
           <p className="eyebrow"><Sprout size={14} /> ULAVURAI FIELD TOOLKIT</p>
           <h1>Explore your field scenario.</h1>
-          <p>Change the measurements to preview model scores, check local weather, and prepare a planning report.</p>
+          <p>Change the measurements to preview model scores, review historical local climate context, and prepare a planning report.</p>
         </div>
         <button className="button button-primary no-print" type="button" onClick={() => window.print()}>
           <Download size={17} /> Print / Save report as PDF

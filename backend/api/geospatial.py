@@ -1,4 +1,3 @@
-import logging
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -14,23 +13,38 @@ if __package__.startswith("backend."):
         ClimateDatasetError,
         lookup_local_climate,
     )
-    from backend.services.recent_weather_lookup import (
-        RecentWeatherError,
-        lookup_recent_weather,
-    )
-    from backend.services.location_name import lookup_location_name
-    from backend.services.weather_lookup import lookup_current_weather
 else:
     from auth import require_authenticated_user
     from services.local_soil_lookup import SoilDatasetError, lookup_local_soil
     from services.local_climate_lookup import ClimateDatasetError, lookup_local_climate
-    from services.recent_weather_lookup import RecentWeatherError, lookup_recent_weather
-    from services.location_name import lookup_location_name
-    from services.weather_lookup import lookup_current_weather
 
 router = APIRouter(prefix="/geospatial", tags=["geospatial"])
 location_data_router = APIRouter(tags=["location data"])
-logger = logging.getLogger(__name__)
+
+
+def _lookup_local_datasets(latitude: float, longitude: float) -> dict[str, Any]:
+    soil = None
+    soil_error = None
+    try:
+        soil = lookup_local_soil(latitude, longitude)
+    except SoilDatasetError:
+        soil_error = "The installed local soil dataset is unavailable or invalid."
+
+    climate = None
+    climate_error = None
+    try:
+        climate = lookup_local_climate(latitude, longitude)
+    except ClimateDatasetError:
+        climate_error = "The installed local climate dataset is unavailable or invalid."
+
+    return {
+        "latitude": latitude,
+        "longitude": longitude,
+        "soil": soil,
+        "soil_error": soil_error,
+        "climate": climate,
+        "climate_error": climate_error,
+    }
 
 
 class SoilLookupRequest(BaseModel):
@@ -66,41 +80,7 @@ def local_lookup(
     request: SoilLookupRequest,
     _: str = Depends(require_authenticated_user),
 ) -> dict[str, Any]:
-    soil = None
-    soil_error = None
-    try:
-        soil = lookup_local_soil(request.latitude, request.longitude)
-    except SoilDatasetError:
-        soil_error = "The installed local soil dataset is unavailable or invalid."
-
-    climate = None
-    climate_error = None
-    try:
-        climate = lookup_local_climate(request.latitude, request.longitude)
-    except ClimateDatasetError:
-        climate_error = "The installed local climate dataset is unavailable or invalid."
-
-    recent_weather = None
-    recent_weather_error = None
-    try:
-        recent_weather = lookup_recent_weather(
-            request.latitude,
-            request.longitude,
-        )
-    except RecentWeatherError as exc:
-        logger.warning("NASA POWER daily weather lookup failed: %s", exc)
-        recent_weather_error = str(exc)
-
-    return {
-        "latitude": request.latitude,
-        "longitude": request.longitude,
-        "soil": soil,
-        "soil_error": soil_error,
-        "climate": climate,
-        "climate_error": climate_error,
-        "recent_weather": recent_weather,
-        "recent_weather_error": recent_weather_error,
-    }
+    return _lookup_local_datasets(request.latitude, request.longitude)
 
 
 @router.get("/climate-lookup")
@@ -138,27 +118,7 @@ def location_data(
             detail="Latitude or longitude is outside its valid range.",
         ) from exc
 
-    soil_error = None
-    try:
-        soil = lookup_local_soil(coordinates.latitude, coordinates.longitude)
-    except SoilDatasetError:
-        soil = None
-        soil_error = "The local soil dataset is unavailable; weather context may still be available."
-
-    weather = lookup_current_weather(
+    return _lookup_local_datasets(
         coordinates.latitude,
         coordinates.longitude,
     )
-    location_name = lookup_location_name(
-        coordinates.latitude,
-        coordinates.longitude,
-    )
-    return {
-        "latitude": coordinates.latitude,
-        "longitude": coordinates.longitude,
-        "location_name": location_name,
-        "soil": soil,
-        "soil_error": soil_error,
-        "weather": weather,
-        "weather_model_inputs": {},
-    }

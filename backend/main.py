@@ -9,6 +9,7 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 project_root = Path(__file__).resolve().parents[1]
 load_dotenv(project_root / ".env")
@@ -16,12 +17,12 @@ load_dotenv(project_root / "backend" / ".env")
 
 if __package__ == "backend":
     from backend.api import farmer_guide, geospatial, history, model, prediction
-    from backend.database import get_database
+    from backend.database import DatabaseError, get_database
     from backend.deployment import validate_production_environment
     from backend.services.predictor import load_predictor, predictor_status
 else:
     from api import farmer_guide, geospatial, history, model, prediction
-    from database import get_database
+    from database import DatabaseError, get_database
     from deployment import validate_production_environment
     from services.predictor import load_predictor, predictor_status
 
@@ -35,7 +36,12 @@ api_prefix = "/api" if is_vercel else ""
 async def lifespan(_: FastAPI):
     validate_production_environment(os.environ, is_vercel=is_vercel)
     database = get_database()
-    database.initialize()
+    try:
+        database.initialize()
+    except DatabaseError:
+        logger.warning(
+            "Prediction history database is unavailable; model predictions remain enabled."
+        )
     load_predictor()
     status = predictor_status()
     if status["status"] != "ok":
@@ -135,7 +141,43 @@ async def validation_error_handler(
         }
         for error in exc.errors()
     ]
-    return JSONResponse(status_code=422, content={"detail": errors})
+    return JSONResponse(
+        status_code=422,
+        content={
+            "status": "error",
+            "code": "invalid_request",
+            "message": "Request validation failed. Check the listed fields and try again.",
+            "errors": errors,
+        },
+    )
+
+
+@app.exception_handler(StarletteHTTPException)
+async def http_error_handler(
+    request: Request, exc: StarletteHTTPException
+) -> JSONResponse:
+    recommendation_path = f"{api_prefix}/farmer-guide/crop-recommendations"
+    if request.url.path.rstrip("/") == recommendation_path:
+        code = (
+            "unauthorized" if exc.status_code == 401
+            else "authentication_unavailable" if exc.status_code == 503
+            else "request_failed"
+        )
+        return JSONResponse(
+            status_code=exc.status_code,
+            content={
+                "status": "error",
+                "code": code,
+                "message": str(exc.detail),
+                "errors": [],
+            },
+            headers=exc.headers,
+        )
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail},
+        headers=exc.headers,
+    )
 
 
 @app.get(f"{api_prefix}/health")

@@ -1,7 +1,9 @@
 import logging
-from typing import Literal
+import math
+from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 if __package__ and __package__.startswith("backend."):
@@ -116,7 +118,9 @@ class FarmerGuideInput(BaseModel):
 class SimpleFarmerRecommendationInput(BaseModel):
     model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
 
-    district: str
+    language: Literal["ta", "en"] = "en"
+    free_text: str | None = Field(default=None, max_length=1000)
+    district: str | None = None
     issue: Literal[
         "low_rainfall",
         "heavy_rainfall",
@@ -126,7 +130,7 @@ class SimpleFarmerRecommendationInput(BaseModel):
         "market_profit",
         "no_problem",
         "other",
-    ]
+    ] | None = None
     goal: Literal[
         "higher_yield",
         "low_water",
@@ -134,20 +138,79 @@ class SimpleFarmerRecommendationInput(BaseModel):
         "lower_investment",
         "higher_profit",
         "improve_soil_fertility",
-    ]
+    ] | None = None
     irrigation: Literal["rainfed", "limited", "reliable"] | None = None
+    irrigation_method: Literal[
+        "drip", "sprinkler", "surface", "furrow", "other"
+    ] | None = None
     season: Literal["kharif", "rabi", "summer", "year_round"] | None = None
     sowing_month: int | None = Field(default=None, ge=1, le=12)
     soil_type: Literal["red_loam", "black", "clay", "sandy", "unknown"] | None = None
+    affected_crop: str | None = Field(default=None, max_length=80)
     issue_description: str | None = Field(default=None, max_length=240)
+    model_measurements: dict[str, float] | None = None
+
+    @field_validator("model_measurements", mode="before")
+    @classmethod
+    def validate_model_measurements(
+        cls, value: object
+    ) -> dict[str, float] | None:
+        if value is None:
+            return None
+        if not isinstance(value, dict):
+            raise ValueError("Model measurements must be an object.")
+        measurement_fields = {
+            "N": (0, None),
+            "P": (0, None),
+            "K": (0, None),
+            "temperature": (-90, 60),
+            "humidity": (0, 100),
+            "ph": (0, 14),
+            "rainfall": (0, None),
+            "electrical_conductivity_ds_m": (0, 1000),
+            "organic_carbon_pct": (0, 100),
+        }
+        unknown = set(value) - measurement_fields.keys()
+        if unknown:
+            raise ValueError(f"Unknown model measurement fields: {sorted(unknown)}")
+        normalized: dict[str, float] = {}
+        for field, measured_value in value.items():
+            if (
+                isinstance(measured_value, bool)
+                or not isinstance(measured_value, (int, float))
+            ):
+                raise ValueError(f"{field} must be a finite JSON number.")
+            try:
+                measured_number = float(measured_value)
+            except OverflowError as exc:
+                raise ValueError(f"{field} must be a finite JSON number.") from exc
+            if not math.isfinite(measured_number):
+                raise ValueError(f"{field} must be a finite JSON number.")
+            minimum, maximum = measurement_fields[field]
+            if measured_number < minimum or (
+                maximum is not None and measured_number > maximum
+            ):
+                raise ValueError(f"{field} is outside the supported input range.")
+            normalized[field] = measured_number
+        return normalized
 
     @field_validator("district")
     @classmethod
-    def known_district(cls, value: str) -> str:
+    def known_district(cls, value: str | None) -> str | None:
+        if value is None or not value.strip():
+            return None
         normalized = value.strip().lower()
         if normalized not in TAMIL_NADU_DISTRICTS:
             raise ValueError("Choose a supported Tamil Nadu district.")
         return normalized
+
+    @field_validator("free_text")
+    @classmethod
+    def clean_free_text(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        cleaned = value.strip()
+        return cleaned or None
 
     @field_validator("issue_description")
     @classmethod
@@ -157,11 +220,85 @@ class SimpleFarmerRecommendationInput(BaseModel):
         cleaned = value.strip()
         return cleaned or None
 
+    @field_validator("affected_crop")
+    @classmethod
+    def clean_affected_crop(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        cleaned = value.strip()
+        return cleaned or None
+
     @model_validator(mode="after")
-    def require_other_description(self) -> "SimpleFarmerRecommendationInput":
-        if self.issue == "other" and not self.issue_description:
-            raise ValueError("Describe the other farming issue.")
+    def require_some_input(self) -> "SimpleFarmerRecommendationInput":
+        has_structured_input = any((
+            self.district, self.issue, self.goal, self.irrigation,
+            self.irrigation_method, self.season,
+            self.sowing_month, self.soil_type, self.issue_description,
+            self.affected_crop,
+        ))
+        if not has_structured_input and not self.free_text:
+            raise ValueError("Provide farm details or describe your farm.")
+        if not self.free_text and self.issue in {"other", "pest_disease"} and not self.issue_description:
+            raise ValueError("Describe the farming issue or pest/disease symptoms.")
+        if not self.free_text and self.issue == "pest_disease" and not self.affected_crop:
+            raise ValueError("Name the crop affected by the pest or disease.")
         return self
+
+
+class FarmerCropRecommendationItem(BaseModel):
+    rank: int = Field(ge=1, le=3)
+    crop: str
+    name_en: str
+    name_ta: str
+    classification: Literal["conditionally_suitable"] = "conditionally_suitable"
+    relative_match_score: float = Field(ge=0, le=100)
+    water_requirement_mm: float | None = Field(default=None, gt=0)
+    water_requirement_class: Literal["low", "medium", "high", "not_assessed"] | None = None
+    duration_days: float | None = Field(default=None, gt=0)
+    reasons: list[str]
+    score_breakdown: list[dict[str, Any]] = Field(default_factory=list)
+    reason_text: list[str]
+    seasonal_suitability: Literal["not_assessed"]
+    risks: list[str]
+    source: dict[str, Any]
+    evidence_notes: list[str] = Field(default_factory=list)
+    crop_sources: list[dict[str, Any]] = Field(default_factory=list)
+    sowing_window_evidence: list[dict[str, Any]] = Field(default_factory=list)
+
+
+class FarmerCropRecommendationResponse(BaseModel):
+    """Stable response for ranked, clarification, unsupported, and withheld requests."""
+
+    status: Literal[
+        "relative_advisory",
+        "insufficient_data",
+        "clarification_required",
+        "unsupported_request",
+    ]
+    method: str
+    confidence: Literal["low", "not_assessed"]
+    district: str
+    issue: str
+    goal: str
+    selected_context: dict[str, Any]
+    parsed_conditions: dict[str, Any]
+    recommendations: list[FarmerCropRecommendationItem]
+    questions: list[str] = Field(default_factory=list)
+    conflicts: list[str] = Field(default_factory=list)
+    assumptions: list[str] = Field(default_factory=list)
+    limitations: list[str]
+    source: dict[str, Any]
+    advisory_only: bool
+    message: str
+    analysis: dict[str, Any] | None = None
+    farming_guide: list[str] = Field(default_factory=list)
+
+
+class FarmerCropRecommendationError(BaseModel):
+    status: Literal["error"] = "error"
+    code: str
+    message: str
+    errors: list[dict[str, Any]] = Field(default_factory=list)
 
 
 @router.get("/location-estimate")
@@ -180,21 +317,54 @@ def farmer_location_estimate(
         ) from exc
 
 
-@router.post("/crop-recommendations")
+@router.post(
+    "/crop-recommendations",
+    response_model=FarmerCropRecommendationResponse,
+    responses={
+        422: {
+            "description": "Invalid farmer input",
+            "model": FarmerCropRecommendationError,
+        },
+        500: {
+            "description": "Recommendation engine failure",
+            "model": FarmerCropRecommendationError,
+        },
+    },
+)
 def simple_farmer_crop_recommendations(
     request: SimpleFarmerRecommendationInput,
     _: str = Depends(require_authenticated_user),
 ) -> dict:
-    return farmer_crop_recommender.recommend_for_simple_inputs(
+    try:
+        result = farmer_crop_recommender.analyze_farm_and_recommend_crops(
+            free_text=request.free_text,
         district=request.district,
         issue=request.issue,
         goal=request.goal,
         irrigation=request.irrigation,
+        irrigation_method=request.irrigation_method,
         season=request.season,
         sowing_month=request.sowing_month,
         soil_type=request.soil_type,
         issue_description=request.issue_description,
+        affected_crop=request.affected_crop,
+        model_measurements=request.model_measurements,
+        language=request.language,
     )
+        logger.info(
+            "Farmer crop analysis completed: status=%s district=%s method=%s",
+            result.get("status"), result.get("district"), result.get("method"),
+        )
+        return result
+    except (KeyError, TypeError, ValueError, RuntimeError) as exc:
+        logger.exception("Farmer crop recommendation failed")
+        return JSONResponse(
+            status_code=500,
+            content=FarmerCropRecommendationError(
+                code="recommendation_failed",
+                message="Crop recommendation could not be completed. Please retry or contact support.",
+            ).model_dump(),
+        )
 
 
 @router.post("/predict")
@@ -298,14 +468,22 @@ def farmer_predict(
 
     try:
         session_id = database.save_farmer_session(selections, result, user_id)
-    except DatabaseError as exc:
-        logger.exception("Could not save farmer guide history.")
-        raise HTTPException(
-            status_code=503, detail="Farmer guide history could not be saved."
-        ) from exc
+    except DatabaseError:
+        logger.warning("Farmer guide result generated but history could not be saved.")
+        return {
+            "success": True,
+            "interface_type": "easy_farmer",
+            "session_id": None,
+            "history_saved": False,
+            "warnings": [
+                "The guidance was generated, but could not be saved to history."
+            ],
+            **result,
+        }
     return {
         "success": True,
         "interface_type": "easy_farmer",
         "session_id": session_id,
+        "history_saved": True,
         **result,
     }

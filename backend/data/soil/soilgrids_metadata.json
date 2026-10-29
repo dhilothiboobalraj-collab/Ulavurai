@@ -53,6 +53,74 @@
         "This total-nitrogen concentration is not a validated equivalent of the crop model's N feature; it is excluded from model inputs.",
         "A modelled SoilGrids pixel, not a field or laboratory measurement."
       ]
+    },
+    "clay_content": {
+      "file": "soilgrids_clay_0-5cm_mean_tamil-nadu-extent.tif",
+      "wcs_map": "clay",
+      "coverage_id": "clay_0-5cm_mean",
+      "units": "g/kg",
+      "value_type": "mapped_estimate",
+      "soil_depth_cm": [
+        0,
+        5
+      ],
+      "scale_factor": 1,
+      "raw_encoding": "Clay mass fraction in grams per kilogram of fine earth",
+      "limitations": [
+        "A modelled SoilGrids pixel, not a field or laboratory measurement.",
+        "Texture fractions are context only and are not crop-model inputs."
+      ]
+    },
+    "sand_content": {
+      "file": "soilgrids_sand_0-5cm_mean_tamil-nadu-extent.tif",
+      "wcs_map": "sand",
+      "coverage_id": "sand_0-5cm_mean",
+      "units": "g/kg",
+      "value_type": "mapped_estimate",
+      "soil_depth_cm": [
+        0,
+        5
+      ],
+      "scale_factor": 1,
+      "raw_encoding": "Sand mass fraction in grams per kilogram of fine earth",
+      "limitations": [
+        "A modelled SoilGrids pixel, not a field or laboratory measurement.",
+        "Texture fractions are context only and are not crop-model inputs."
+      ]
+    },
+    "silt_content": {
+      "file": "soilgrids_silt_0-5cm_mean_tamil-nadu-extent.tif",
+      "wcs_map": "silt",
+      "coverage_id": "silt_0-5cm_mean",
+      "units": "g/kg",
+      "value_type": "mapped_estimate",
+      "soil_depth_cm": [
+        0,
+        5
+      ],
+      "scale_factor": 1,
+      "raw_encoding": "Silt mass fraction in grams per kilogram of fine earth",
+      "limitations": [
+        "A modelled SoilGrids pixel, not a field or laboratory measurement.",
+        "Texture fractions are context only and are not crop-model inputs."
+      ]
+    },
+    "soil_organic_carbon": {
+      "file": "soilgrids_soc_0-5cm_mean_tamil-nadu-extent.tif",
+      "wcs_map": "soc",
+      "coverage_id": "soc_0-5cm_mean",
+      "units": "g/kg",
+      "value_type": "mapped_estimate",
+      "soil_depth_cm": [
+        0,
+        5
+      ],
+      "scale_factor": 0.1,
+      "raw_encoding": "Soil organic carbon in decigrams per kilogram; converted to grams per kilogram",
+      "limitations": [
+        "A modelled SoilGrids pixel, not a field or laboratory measurement.",
+        "No soil organic-carbon feature exists in the trained crop model."
+      ]
     }
   }
 }

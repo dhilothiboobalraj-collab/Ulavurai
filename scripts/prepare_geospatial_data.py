@@ -24,6 +24,7 @@ WGS84_EXTENT = (76, 81, 8, 14)
 EXPECTED_GRID = (2212, 2511)
 EXPECTED_PIXEL_SIZE_M = (295.42, 266.0)
 EXPECTED_PROJECTION = "igh"
+REQUIRED_PROPERTIES = ("ph", "total_nitrogen")
 
 
 def _coverage_url(map_name: str, coverage_id: str) -> str:
@@ -48,7 +49,7 @@ def _validate_metadata(metadata: Any) -> dict[str, Any]:
         raise ValueError(f"{METADATA_NAME} is missing its property definitions.")
 
     properties = metadata["properties"]
-    for name in ("ph", "total_nitrogen"):
+    for name in REQUIRED_PROPERTIES:
         definition = properties.get(name)
         if (
             not isinstance(definition, dict)
@@ -57,6 +58,15 @@ def _validate_metadata(metadata: Any) -> dict[str, Any]:
             or not isinstance(definition.get("wcs_map"), str)
         ):
             raise ValueError(f"{METADATA_NAME} is missing WCS metadata for {name}.")
+    for name, definition in properties.items():
+        if (
+            not isinstance(name, str)
+            or not isinstance(definition, dict)
+            or not isinstance(definition.get("file"), str)
+            or not isinstance(definition.get("coverage_id"), str)
+            or not isinstance(definition.get("wcs_map"), str)
+        ):
+            raise ValueError(f"{METADATA_NAME} has invalid WCS metadata for {name}.")
     return properties
 
 
@@ -96,7 +106,7 @@ def prepare_data(output_directory: Path = DEFAULT_DATA_DIRECTORY, timeout: int =
     results: list[Path] = []
     with tempfile.TemporaryDirectory(prefix="soilgrids-", dir=output_directory) as temporary:
         staged: list[tuple[Path, Path]] = []
-        for name in ("ph", "total_nitrogen"):
+        for name in properties:
             definition = properties[name]
             destination = output_directory / definition["file"]
             staged_path = Path(temporary) / destination.name

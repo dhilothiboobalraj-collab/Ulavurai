@@ -40,8 +40,7 @@ class GeospatialPreparationTests(unittest.TestCase):
             ).read_text(encoding="utf-8")
         )
 
-        for name in ("ph", "total_nitrogen"):
-            definition = metadata["properties"][name]
+        for definition in metadata["properties"].values():
             query = parse_qs(
                 urlparse(
                     prepare_geospatial_data._coverage_url(
@@ -67,6 +66,9 @@ class GeospatialPreparationTests(unittest.TestCase):
             (source_directory / metadata_source["properties"][name]["file"]).read_bytes()
             for name in ("ph", "total_nitrogen")
         ]
+        source_files.extend([source_files[0]] * (
+            len(metadata_source["properties"]) - len(source_files)
+        ))
 
         with tempfile.TemporaryDirectory() as temporary_directory:
             output_directory = Path(temporary_directory)
@@ -79,7 +81,7 @@ class GeospatialPreparationTests(unittest.TestCase):
             ):
                 output_files = prepare_geospatial_data.prepare_data(output_directory)
 
-            self.assertEqual(len(output_files), 2)
+            self.assertEqual(len(output_files), len(metadata_source["properties"]))
             self.assertEqual(
                 [hashlib.sha256(path.read_bytes()).hexdigest() for path in output_files],
                 [hashlib.sha256(content).hexdigest() for content in source_files],

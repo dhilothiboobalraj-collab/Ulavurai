@@ -46,6 +46,35 @@ class PredictionInput(BaseModel):
         return value
 
 
+class FarmerGuideContext(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    district: str
+    issue: Literal[
+        "low_rainfall",
+        "heavy_rainfall",
+        "low_fertility",
+        "ph_issue",
+        "pest_disease",
+        "market_profit",
+        "no_problem",
+        "other",
+    ]
+    goal: Literal[
+        "higher_yield",
+        "low_water",
+        "short_duration",
+        "lower_investment",
+        "higher_profit",
+        "improve_soil_fertility",
+    ]
+    irrigation: Literal["rainfed", "limited", "reliable"] | None = None
+    season: Literal["kharif", "rabi", "summer", "year_round"] | None = None
+    sowing_month: int | None = Field(default=None, ge=1, le=12)
+    soil_type: Literal["red_loam", "black", "clay", "sandy", "unknown"] | None = None
+    issue_description: str | None = Field(default=None, max_length=240)
+
+
 class AdvisoryContext(BaseModel):
     model_config = ConfigDict(extra="forbid", allow_inf_nan=False)
 
@@ -68,6 +97,7 @@ class AdvisoryContext(BaseModel):
     farmer_objective: Literal[
         "safe", "profit", "low_water", "short_duration", "other"
     ] | None = None
+    farmer_guide: FarmerGuideContext | None = None
     geospatial_estimate: dict[str, object] | None = None
     weather_context: dict[str, object] | None = None
 
@@ -104,7 +134,14 @@ def predict(
             else {}
         )
         result = get_predictor().predict(values)
-        result["advisory_context"] = context
+    except PredictorError as exc:
+        logger.warning("Prediction service unavailable: %s", exc)
+        raise HTTPException(
+            status_code=503, detail="The crop recommendation service is unavailable."
+        ) from exc
+
+    result["advisory_context"] = context
+    try:
         database.save_prediction(
             values,
             result["best_crop"],
@@ -112,14 +149,13 @@ def predict(
             user_id,
             context,
         )
-        return {"success": True, **result}
-    except PredictorError as exc:
-        logger.warning("Prediction service unavailable: %s", exc)
-        raise HTTPException(
-            status_code=503, detail="The crop recommendation service is unavailable."
-        ) from exc
-    except DatabaseError as exc:
+    except DatabaseError:
         logger.exception("Could not save prediction history.")
-        raise HTTPException(
-            status_code=503, detail="Prediction history could not be saved."
-        ) from exc
+        result["history_saved"] = False
+        result.setdefault("warnings", []).append(
+            "The recommendation was generated, but could not be saved to prediction history."
+        )
+    else:
+        result["history_saved"] = True
+
+    return {"success": True, **result}

@@ -150,8 +150,7 @@ class LocalClimateLookupTests(unittest.TestCase):
         try:
             with (
                 patch.object(geospatial, "lookup_local_climate", return_value=expected),
-                patch("backend.services.weather_lookup.urlopen", side_effect=AssertionError("weather API")),
-                patch("backend.services.location_name.urlopen", side_effect=AssertionError("geocoder")),
+                patch("urllib.request.urlopen", side_effect=AssertionError("network request")),
             ):
                 response = TestClient(app).get(
                     "/geospatial/climate-lookup",
@@ -173,13 +172,7 @@ class LocalClimateLookupTests(unittest.TestCase):
             with (
                 patch.object(geospatial, "lookup_local_soil", return_value=soil),
                 patch.object(geospatial, "lookup_local_climate", return_value=climate),
-                patch.object(
-                    geospatial,
-                    "lookup_recent_weather",
-                    return_value={"status": "available"},
-                ),
-                patch("backend.services.weather_lookup.urlopen", side_effect=AssertionError("weather API")),
-                patch("backend.services.location_name.urlopen", side_effect=AssertionError("geocoder")),
+                patch("urllib.request.urlopen", side_effect=AssertionError("network request")),
             ):
                 response = TestClient(app).post(
                     "/geospatial/local-lookup",

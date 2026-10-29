@@ -181,17 +181,21 @@ analysis and out-of-training-range warnings.
   speech playback where supported. After the six questions, farmers choose
   either Quick Farmer Guidance or AI Crop Recommendation. Quick Guidance is
   general situation advice only and never claims a model-backed crop.
-- The Easy Farmer Guide also offers a separate Tamil-first simple crop
-  recommendation form at the start of the section. It accepts a searchable
-  Tamil Nadu district, farming issue, goal, and optional irrigation, season,
-  sowing month, and soil type without asking for laboratory N/P/K or weather
-  values. `POST /farmer-guide/crop-recommendations` ranks three options using
-  only the existing TNAU crop water-requirement and duration table in
-  `backend/data/farmer_crop_rules.json`. The ranking is provisional and
-  advisory, not a Random Forest prediction. District-level soil/climate data,
-  local sowing windows, soil compatibility rules, costs, and current prices
-  are not installed; those factors are shown as unavailable or excluded from
-  ranking rather than inferred.
+- The Easy Farmer Guide provides a Tamil-first crop recommendation form with
+  optional structured district, soil, water, issue, goal, season, and month
+  fields plus an English/Tamil "Describe your farm" input. `POST
+  /farmer-guide/crop-recommendations` normalizes supported facts, preserves
+  explicit selections, asks for confirmation on conflicts, and compares crops
+  using only the TNAU crop water-requirement and duration table in
+  `backend/data/farmer_crop_rules.json`. Its typed response uses `status` values
+  `relative_advisory`, `clarification_required`, `insufficient_data`, and
+  `unsupported_request`; request validation and engine failures use
+  `{status: "error", code, message, errors}`. A relative ranking is advisory,
+  not a suitability score, Random Forest prediction, or probability of success.
+  District/soil compatibility, seasonal sowing windows, waterlogging tolerance,
+  prices, yields, and profits are not installed and are not inferred. Flood or
+  waterlogging risk withholds crop ranking. No LLM API key is required; the
+  feature uses a deterministic local parser and rule fallback.
 - AI Crop Recommendation requires all seven measured Random Forest inputs:
   `N`, `P`, `K`, `temperature`, `humidity`, `ph`, and `rainfall`. The farmer
   form displays ranges and example values derived from the existing training
@@ -241,7 +245,8 @@ substitute for local agronomic advice.
   universal water thresholds; its totals and durations are not district-
   specific field measurements. Source publication update dates are not
   available in the installed reference. Yield, profit, pest resistance, and
-  local seasonal suitability are not predicted.
+  local seasonal suitability are not predicted. A profit or investment goal is
+  recorded but not scored without verified local cost, yield, and price data.
 - Companion-crop suggestions are broad educational ideas, not validated crop
   compatibility recommendations for a specific location or variety.
 - Quick Farmer Guidance works without measurements but does not provide a
@@ -259,5 +264,6 @@ from the supplied CSV, run
 It compares five classifiers,
 selects using validation macro F1 (accuracy breaks ties), and writes model and
 metrics files into `models/`. The application itself never invokes this script.
-#   U l a v u r a i  
+#   U l a v u r a i 
+ 
  

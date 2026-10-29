@@ -31,6 +31,13 @@ SOIL_METADATA_PATH = SOIL_DIRECTORY / "metadata.json"
 SOILGRIDS_METADATA_PATH = SOIL_DIRECTORY / "soilgrids_metadata.json"
 SOILGRIDS_PH_PATH = SOIL_DIRECTORY / "soilgrids_ph_0-5cm_mean_tamil-nadu-extent.tif"
 SOILGRIDS_NITROGEN_PATH = SOIL_DIRECTORY / "soilgrids_nitrogen_0-5cm_mean_tamil-nadu-extent.tif"
+SOILGRIDS_REQUIRED_PROPERTIES = {"ph", "total_nitrogen"}
+SOILGRIDS_SUPPORTED_PROPERTIES = SOILGRIDS_REQUIRED_PROPERTIES | {
+    "clay_content",
+    "sand_content",
+    "silt_content",
+    "soil_organic_carbon",
+}
 SOIL_PROPERTIES = ("N", "P", "K", "ph")
 MODEL_PROPERTIES = (*SOIL_PROPERTIES, "temperature", "humidity", "rainfall")
 EARTH_RADIUS_M = 6_371_000
@@ -220,7 +227,7 @@ def _load_raster_metadata(
     if not isinstance(metadata.get("coverage"), str) or not metadata["coverage"].strip():
         raise SoilDatasetError("Soil raster metadata must describe its coverage.")
     properties = metadata["properties"]
-    if not {"ph", "total_nitrogen"}.issubset(properties):
+    if not SOILGRIDS_REQUIRED_PROPERTIES.issubset(properties):
         raise SoilDatasetError(
             "Soil raster metadata must define pH and total nitrogen bands."
         )
@@ -228,7 +235,7 @@ def _load_raster_metadata(
         depth = definition.get("soil_depth_cm") if isinstance(definition, dict) else None
         scale_factor = definition.get("scale_factor", 1) if isinstance(definition, dict) else None
         if (
-            name not in ("ph", "total_nitrogen")
+            name not in SOILGRIDS_SUPPORTED_PROPERTIES
             or not isinstance(definition, dict)
             or not isinstance(definition.get("file"), str)
             or not definition["file"].strip()
@@ -571,17 +578,29 @@ def lookup_local_soil(
         if raster_info_path is None or not raster_info_path.is_file():
             raise SoilDatasetError("Soil raster metadata is missing.")
         raster_metadata = _load_raster_metadata_file(raster_info_path)
-        if not use_default_datasets:
-            raster_paths = {
-                name: path or raster_info_path.parent / definition["file"]
-                for name, path in raster_paths.items()
-                for definition in [raster_metadata["properties"][name]]
-            }
-        for name, path in raster_paths.items():
-            if path is None:
-                continue
+        raster_paths = {
+            name: raster_paths.get(name)
+            or raster_info_path.parent / definition["file"]
+            for name, definition in raster_metadata["properties"].items()
+        }
+        for name in SOILGRIDS_REQUIRED_PROPERTIES:
+            path = raster_paths[name]
             if not path.is_file():
                 raise SoilDatasetError(f"The configured SoilGrids raster for {name} is missing.")
+        missing_optional = [
+            name
+            for name in SOILGRIDS_SUPPORTED_PROPERTIES - SOILGRIDS_REQUIRED_PROPERTIES
+            if name in raster_paths and not raster_paths[name].is_file()
+        ]
+        if missing_optional:
+            warnings.append(
+                "Optional local SoilGrids layers are not installed: "
+                + ", ".join(sorted(missing_optional))
+                + ". Run scripts/prepare_geospatial_data.py to download them."
+            )
+        for name, path in raster_paths.items():
+            if not path.is_file():
+                continue
             definition = raster_metadata["properties"][name]
             band, affine, crs, width, height = _load_raster(path)
             try:

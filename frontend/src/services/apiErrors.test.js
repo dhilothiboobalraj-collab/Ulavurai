@@ -6,6 +6,7 @@ import {
 } from "./apiErrors.js";
 
 const SOIL_LOOKUP_PATH = "/geospatial/soil-lookup";
+const FARMER_RECOMMENDATIONS_PATH = "/farmer-guide/crop-recommendations";
 
 test("API error messages distinguish auth, permissions, missing routes, and backend failures", () => {
   assert.equal(
@@ -19,6 +20,10 @@ test("API error messages distinguish auth, permissions, missing routes, and back
   assert.match(
     getApiResponseError(SOIL_LOOKUP_PATH, 404, {}),
     /does not have the local soil lookup route/,
+  );
+  assert.match(
+    getApiResponseError(FARMER_RECOMMENDATIONS_PATH, 404, {}),
+    /does not have the Farmer Guide recommendations route/,
   );
   assert.equal(
     getApiResponseError("/health", 404, {}),

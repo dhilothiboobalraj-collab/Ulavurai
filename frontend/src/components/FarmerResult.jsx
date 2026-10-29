@@ -49,7 +49,8 @@ const TEXT = {
     noGuess: "N, P, K, pH, வெப்பநிலை, ஈரப்பதம் மற்றும் மழை அளவு கிடைத்தால் AI மூலம் பரிந்துரை வழங்க முடியும். இந்த மதிப்புகளை நாங்கள் ஊகிக்கவில்லை.",
     generalNotice: "இது பொதுவான வழிகாட்டுதல். AI பயிர் பரிந்துரைக்கு மண் மற்றும் வானிலை அளவீடுகள் தேவை.",
     recommended: "பரிந்துரைக்கப்பட்ட பயிர்",
-    confidence: "மாதிரி நிகழ்தகவு",
+    confidence: "மாதிரி வாக்கு விகிதம் (அளவுத்திருத்தப்படாதது)",
+    scoreNote: "இது பயிர் வெற்றி பெறும் நிகழ்தகவு அல்ல.",
     inputs: "நீங்கள் வழங்கிய அளவீடுகள்",
     why: "உங்கள் மண் மற்றும் வானிலை அளவீடுகளின் அடிப்படையில் ஏற்கனவே உள்ள Random Forest மாதிரி இந்தப் பயிரைத் தேர்ந்தெடுத்தது.",
     nextStep: "அடுத்ததாக, உங்கள் உள்ளூர் வேளாண்மை நிபுணருடன் அளவீடுகளையும் பரிந்துரையையும் சரிபார்க்கவும்.",
@@ -88,7 +89,8 @@ const TEXT = {
     noGuess: "If N, P, K, pH, temperature, humidity and rainfall are available, AI can provide a model-based recommendation. We have not guessed these values.",
     generalNotice: "This is general guidance. AI crop recommendation requires soil and weather measurements.",
     recommended: "Recommended Crop",
-    confidence: "Model probability",
+    confidence: "Model vote fraction (not calibrated)",
+    scoreNote: "This is not the probability of successful cultivation.",
     inputs: "Your measured inputs",
     why: "The existing Random Forest selected this crop from the soil and weather measurements you provided.",
     nextStep: "Next, review your measurements and this recommendation with a local agriculture expert.",
@@ -261,6 +263,7 @@ export default function FarmerResult({
       {modelReady && result.recommendations?.length > 0 && (
         <section className="farmer-ranked panel" aria-label={tamil ? "AI பயிர் பரிந்துரைகள்" : "AI crop recommendations"}>
           <h2>{tamil ? "AI பரிந்துரை" : "AI Crop Recommendation"}</h2>
+          <p className="muted">{text.scoreNote}</p>
           <ol>
             {result.recommendations.slice(0, 3).map((item, index) => (
               <li key={item.crop}>

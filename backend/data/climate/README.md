@@ -59,49 +59,35 @@ years. Temperature and relative humidity are averaged across the corresponding
 calendar month in the 30-year period. Incomplete values are kept unavailable;
 the installer requires at least 27 valid years for a month's value.
 
-## Model compatibility
+## Runtime and model compatibility
 
-The `Crop_recommendation.csv` training data do not identify their weather
-observation dates, periods, or aggregations. The NASA monthly normals therefore
-are **historical climate context only**: they are never inserted into the
-Random Forest inputs. The map form displays all twelve monthly normals,
-reference period, source, retrieval date, resolution, and selected grid-cell
-distance. Temperature, humidity, and rainfall prediction fields remain
-editable and require manual values with compatible semantics.
+The normalized JSON file is read locally. The installer needs internet access
+only when downloading or refreshing this dataset; application startup, the
+Expert Advisor, and coordinate lookups do not call NASA POWER or any other
+weather provider. The checked-in regional file is ready to use offline.
+
+The Expert Advisor can fill temperature, humidity, and rainfall with the
+selected location's normal for the selected calendar month. The values come
+from the nearest installed grid cell within the documented 50 km matching
+limit. They are 1991–2020 historical monthly normals, not live conditions,
+field measurements, or a forecast. Rainfall is monthly accumulation in
+mm/month.
+
+The `Crop_recommendation.csv` training data do not identify the weather
+observation dates, periods, or aggregations. Consequently, these local climate
+normals are estimates for convenient form completion, not verified
+measurement-equivalent model inputs. The form labels them as historical
+estimates and requires the user to review and acknowledge them before
+prediction. Field measurements or a validated model-compatible weather source
+are preferable for agronomic decisions.
 
 This dataset supplies no plant-available nitrogen, phosphorus, or potassium.
 The installed SoilGrids total-nitrogen layer is not treated as model N.
 SoilGrids pH remains a mapped estimate and is only populated when its selected
 raster cell is valid.
 
-The local lookup service reads this JSON file only. It makes no weather API,
-geocoding, or other data-provider request. The application still uses its
-existing Supabase authentication, and the map basemap and separate Field
-Toolkit forecast may use internet services.
-
-## Recent daily weather preview
-
-The authenticated `POST /geospatial/local-lookup` map flow also requests
-recent daily values from the NASA POWER Daily Point API
-(<https://power.larc.nasa.gov/docs/services/api/temporal/daily/>). It requests
-`T2M` (2 m air temperature, °C), `RH2M` (2 m relative humidity, %), and
-`PRECTOTCORR` (corrected precipitation, mm/day) for the Agroclimatology
-community, in UTC, over the previous 60 complete days. The lookup uses the
-latest valid returned day for each property, excludes NASA fill values, and
-shows each observation date and its age at retrieval. Availability delay varies;
-the application does not assume a fixed delay or label these data as current
-station observations.
-
-The backend caches successful parsed responses in process memory for six hours
-using coordinates rounded to 0.01° and the requested date range as the key. It
-allows at most 256 entries and uses a 10-second provider timeout. A provider
-failure is reported independently, so it does not hide installed soil or
-historical climate results. NASA POWER/MERRA-2 values are gridded
-model/reanalysis estimates, not direct field measurements.
-
-Recent daily values may be previewed in the three climate form fields, but
-they are not sent to the Random Forest while still map-filled. The form blocks
-prediction until the user replaces those values because the training dataset
-does not document the weather feature periods or aggregations. The
-1991–2020 monthly normals above remain separate context and are never
-substituted for the recent daily values or prediction inputs.
+The map uses a local interactive latitude/longitude grid rather than a map
+image or online tile service. Geolocation is optional and may require HTTPS or
+localhost; manual coordinate selection and entry do not require permission.
+The application still uses its existing Supabase authentication and configured
+database, which remain separate service requirements.

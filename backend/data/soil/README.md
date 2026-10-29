@@ -5,6 +5,10 @@ This directory contains a regional extract of the genuine, documented
 
 - `soilgrids_ph_0-5cm_mean_tamil-nadu-extent.tif`
 - `soilgrids_nitrogen_0-5cm_mean_tamil-nadu-extent.tif`
+- Optional setup downloads: `soilgrids_clay_0-5cm_mean_tamil-nadu-extent.tif`,
+  `soilgrids_sand_0-5cm_mean_tamil-nadu-extent.tif`,
+  `soilgrids_silt_0-5cm_mean_tamil-nadu-extent.tif`, and
+  `soilgrids_soc_0-5cm_mean_tamil-nadu-extent.tif`
 - `soilgrids_metadata.json`
 
 The rasters were downloaded during development from the ISRIC SoilGrids WCS
@@ -30,6 +34,14 @@ field sample. The WCS exports have an output pixel size of approximately
 295.42 × 266.00 m in their projected raster grid. The source layer is the
 0–5 cm mean-depth interval. The pH layer is encoded as pH × 10 and is divided by
 10 when read. The nitrogen layer is in cg/kg.
+Clay, sand, and silt are in g/kg. Soil organic carbon is supplied in dg/kg and
+converted to g/kg by the lookup. These texture and carbon layers are optional
+context; none is a trained model input.
+
+The local metadata identifies the SoilGrids 2.0 (2021 publication) product
+version, but does not identify a single observation/reference year for these
+modelled layers. Do not interpret the publication year as a field sampling
+date.
 
 The WCS GeoTIFFs do not carry a NoData tag. Zero-valued pixels are treated as
 unavailable, never as measurements. Per-property metadata, units, and these
@@ -42,11 +54,17 @@ runtime) with Python and the project's installed Rasterio dependency:
 python scripts/prepare_geospatial_data.py
 ```
 
-The script downloads the two documented SoilGrids 2.0 coverages from the
-public ISRIC WCS endpoint without an API key, verifies the expected GeoTIFF
-grid/CRS/resolution, and replaces the local extracts only after both files
-have downloaded and passed validation. The regional output is approximately
-5 MB total. Runtime map lookups continue to use only these local files.
+The script downloads pH, total nitrogen, clay, sand, silt, and soil organic
+carbon at the same 0–5 cm depth and regional bounds from the public ISRIC WCS
+endpoint without an API key. It verifies each GeoTIFF's grid, CRS, and
+resolution, then replaces files only after all downloads pass validation.
+The existing pH and nitrogen extracts total about 4.8 MB. Based on those
+current files, plan for roughly 10–19 MB for all six rasters; this is an
+estimate, and actual compressed WCS response sizes are reported by the
+operating system after download. The four optional rasters are not currently
+bundled; until the script completes successfully, lookups report them as not
+installed and do not invent values. Runtime map lookups use only installed
+local files.
 
 ### Supported model inputs
 
@@ -65,8 +83,9 @@ have downloaded and passed validation. The regional output is approximately
 - **Temperature, humidity, and rainfall:** the soil rasters do not provide
   weather properties. An optional NASA POWER historical monthly climate
   dataset is installed separately under `backend/data/climate/`; its values
-  are displayed as context only and are not prediction inputs. Its historical
-  period and aggregation are not known to match the training CSV.
+  are displayed as context only and are not prediction inputs. It covers
+  1991–2020; its historical period and aggregation are not known to match the
+  training CSV. Current weather and forecasts are unavailable offline.
 
 No N/P/K values are inferred from organic carbon, cation-exchange capacity,
 district, soil type, satellite imagery, or crop-training rows. The crop model,
@@ -75,18 +94,12 @@ its training CSV, and its feature order remain unchanged.
 ## Runtime and adding data
 
 The authenticated `POST /geospatial/soil-lookup` endpoint reads local raster
-files only; it makes no external soil or weather requests. Raster bands are
-cached in memory and reloaded when the files change. If a raster or its
-metadata is missing or unreadable, the endpoint reports a dataset error rather
-than manufacturing a value. The authenticated
-`GET /geospatial/climate-lookup` endpoint likewise reads the optional local
-climate file only. The Expert Advisor requests both local endpoints and keeps
-historical climate context separate from the model feature vector.
-
-The separate authenticated `GET /location-data` endpoint also requests current
-gridded weather context from Open-Meteo and a place name from Nominatim. It is
-not used by the Expert Advisor's local auto-fill flow. See the root README for
-the endpoint's provider attribution and use conditions.
+files only. Raster bands are cached in memory and reloaded when the files
+change. If a raster or its metadata is missing or unreadable, the endpoint
+reports a dataset error rather than manufacturing a value. The authenticated
+`GET /geospatial/climate-lookup` endpoint likewise reads the installed local
+climate file only. The Expert Advisor's `/location-data` lookup returns both
+local datasets and makes no map, weather, geocoding, or soil-provider requests.
 
 The WCS preparation request is reproducible for this fixed extent and grid;
 the ISRIC service can change or become unavailable. Compare the metadata and
@@ -101,9 +114,9 @@ unavailable/incompatible status metadata and are never copied into model inputs:
 the model feature definitions and units are not documented well enough to
 validate them. The training CSV is not a soil dataset; it has no coordinates or
 documented nutrient units. No N/P/K download installer is provided because
-there is currently no verified compatible source to install. The existing
-`scripts/prepare_geospatial_data.py` remains the reproducible installer for the
-documented SoilGrids pH and total-nitrogen rasters.
+there is currently no verified compatible source to install.
+`scripts/prepare_geospatial_data.py` is the reproducible installer for the
+documented SoilGrids pH, nitrogen, texture, and organic-carbon rasters.
 
 ### N/P/K source investigation
 

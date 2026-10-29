@@ -184,6 +184,7 @@ def build_report() -> dict[str, Any]:
     rasters = []
     grid_cells = 0
     coverage_bounds = None
+    missing_rasters = []
     data_sources = [
         {
             "name": "ICFA Crop Recommendation dataset v2 (training data)",
@@ -289,7 +290,14 @@ def build_report() -> dict[str, Any]:
     for property_name, definition in metadata["properties"].items():
         raster_path = SOILGRIDS_METADATA_PATH.parent / definition["file"]
         if not raster_path.is_file():
-            raise FileNotFoundError(f"Installed soil raster is missing: {raster_path}")
+            if property_name in {"ph", "total_nitrogen"}:
+                raise FileNotFoundError(f"Required soil raster is missing: {raster_path}")
+            missing_rasters.append({
+                "property": property_name,
+                "file": raster_path.name,
+                "status": "not_installed",
+            })
+            continue
         with rasterio.open(raster_path) as dataset:
             if dataset.crs is None:
                 raise ValueError(f"Soil raster has no CRS: {raster_path}")
@@ -347,6 +355,7 @@ def build_report() -> dict[str, Any]:
         },
         "climate_coverage": climate_coverage,
         "rasters": rasters,
+        "missing_rasters": missing_rasters,
         "model_input_coverage": {
             name: {
                 "compatible_locations": 0,

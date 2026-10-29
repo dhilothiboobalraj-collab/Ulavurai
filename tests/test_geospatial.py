@@ -17,61 +17,8 @@ from backend.api import geospatial, prediction
 from backend.main import app
 from backend.schema import FEATURES
 from backend.services import local_soil_lookup
-from backend.services.recent_weather_lookup import clear_recent_weather_cache
 from backend.services.predictor import CropPredictor
 from scripts.report_npk_coverage import build_report
-
-
-def recent_weather_fixture(latitude, longitude):
-    observations = {
-        "temperature": {
-            "value": 28.5,
-            "units": "°C",
-            "observation_date": "2026-10-22",
-            "data_delay_days": 5,
-            "source": "NASA POWER Daily API (MERRA-2)",
-            "value_type": "mapped_estimate",
-        },
-        "humidity": {
-            "value": 71.2,
-            "units": "%",
-            "observation_date": "2026-10-22",
-            "data_delay_days": 5,
-            "source": "NASA POWER Daily API (MERRA-2)",
-            "value_type": "mapped_estimate",
-        },
-        "rainfall": {
-            "value": 4.1,
-            "units": "mm/day",
-            "observation_date": "2026-10-22",
-            "data_delay_days": 5,
-            "source": "NASA POWER Daily API (MERRA-2)",
-            "value_type": "mapped_estimate",
-        },
-    }
-    return {
-        "status": "available",
-        "latitude": latitude,
-        "longitude": longitude,
-        "dataset_name": "NASA POWER Daily API (MERRA-2)",
-        "source": "NASA POWER Daily API (MERRA-2)",
-        "source_url": "https://power.larc.nasa.gov/",
-        "license": "NASA full-and-open data policy.",
-        "license_url": "https://www.earthdata.nasa.gov/",
-        "retrieved_at": "2026-10-27T12:00:00+00:00",
-        "requested_period": {
-            "start_date": "2026-08-28",
-            "end_date": "2026-10-26",
-        },
-        "latest_observation_date": "2026-10-22",
-        "data_delay_days": 5,
-        "api_coordinates": {"latitude": 11.127, "longitude": 78.657},
-        "grid_resolution_degrees": {"latitude": 0.5, "longitude": 0.625},
-        "observations": observations,
-        "model_compatible": False,
-        "context_only": False,
-        "warning": "Daily gridded estimates; replace before model prediction.",
-    }
 
 
 class LocalSoilLookupTests(unittest.TestCase):
@@ -98,20 +45,11 @@ class LocalSoilLookupTests(unittest.TestCase):
         self.assertIn("temperature", result["unavailable_properties"])
 
     def test_real_combined_endpoint_returns_valid_soil_and_climate_without_external_calls(self):
-        clear_recent_weather_cache()
         app.dependency_overrides[geospatial.require_authenticated_user] = (
             lambda: "synthetic-test-user"
         )
         try:
-            with (
-                patch("backend.services.weather_lookup.urlopen", side_effect=AssertionError("weather API call")),
-                patch("backend.services.location_name.urlopen", side_effect=AssertionError("geocoder call")),
-                patch.object(
-                    geospatial,
-                    "lookup_recent_weather",
-                    side_effect=recent_weather_fixture,
-                ),
-            ):
+            with patch("urllib.request.urlopen", side_effect=AssertionError("network request")):
                 valid_response = TestClient(app).post(
                     "/geospatial/local-lookup",
                     json={"latitude": 11.1271, "longitude": 78.6569},
@@ -119,6 +57,10 @@ class LocalSoilLookupTests(unittest.TestCase):
                 nodata_response = TestClient(app).post(
                     "/geospatial/local-lookup",
                     json={"latitude": 11.66, "longitude": 78.14},
+                )
+                location_response = TestClient(app).get(
+                    "/location-data",
+                    params={"latitude": 11.1271, "longitude": 78.6569},
                 )
         finally:
             app.dependency_overrides.pop(geospatial.require_authenticated_user, None)
@@ -162,25 +104,20 @@ class LocalSoilLookupTests(unittest.TestCase):
             {"N", "P", "K", "temperature", "humidity", "rainfall"}
             .intersection(valid["soil"]["inputs"])
         )
-        self.assertEqual(valid["recent_weather"]["status"], "available")
-        self.assertEqual(
-            valid["recent_weather"]["observations"]["rainfall"]["units"],
-            "mm/day",
-        )
-        self.assertFalse(valid["recent_weather"]["model_compatible"])
-        self.assertEqual(nodata["recent_weather"]["status"], "available")
+        self.assertNotIn("recent_weather", valid)
+        self.assertNotIn("recent_weather", nodata)
+        self.assertEqual(location_response.status_code, 200)
+        location_data = location_response.json()
+        self.assertEqual(location_data["climate"]["status"], "available")
+        self.assertNotIn("weather", location_data)
+        self.assertNotIn("location_name", location_data)
 
-    def test_recent_weather_timeout_does_not_hide_local_soil_or_historical_climate(self):
+    def test_soil_lookup_failure_does_not_hide_historical_climate(self):
         app.dependency_overrides[geospatial.require_authenticated_user] = (
             lambda: "synthetic-test-user"
         )
         try:
             with (
-                patch.object(
-                    geospatial,
-                    "lookup_recent_weather",
-                    side_effect=geospatial.RecentWeatherError("NASA POWER timeout"),
-                ),
                 patch.object(
                     geospatial,
                     "lookup_local_soil",
@@ -201,8 +138,6 @@ class LocalSoilLookupTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         result = response.json()
-        self.assertIsNone(result["recent_weather"])
-        self.assertEqual(result["recent_weather_error"], "NASA POWER timeout")
         self.assertEqual(result["soil"]["inputs"]["ph"], 7.4)
         self.assertEqual(result["climate"]["status"], "available")
 
@@ -610,6 +545,49 @@ class SoilGridsRasterLookupTests(unittest.TestCase):
         self.assertEqual(result["provenance"]["dataset_version"], "SoilGrids 2.0 (2021 publication)")
         self.assertNotIn("N", result["inputs"])
         self.assertIn("total_nitrogen", result["context_properties"])
+        self.assertIn("clay_content", " ".join(result["warnings"]))
+
+    def test_optional_soil_texture_and_carbon_rasters_return_context_only(self):
+        definitions = {
+            "clay_content": {
+                "file": "clay.tif",
+                "units": "g/kg",
+                "soil_depth_cm": [0, 5],
+            },
+            "sand_content": {
+                "file": "sand.tif",
+                "units": "g/kg",
+                "soil_depth_cm": [0, 5],
+            },
+            "silt_content": {
+                "file": "silt.tif",
+                "units": "g/kg",
+                "soil_depth_cm": [0, 5],
+            },
+            "soil_organic_carbon": {
+                "file": "soc.tif",
+                "units": "g/kg",
+                "soil_depth_cm": [0, 5],
+                "scale_factor": 0.1,
+            },
+        }
+        self.metadata["properties"].update(definitions)
+        self.metadata_path.write_text(json.dumps(self.metadata), encoding="utf-8")
+        for name, definition in definitions.items():
+            path = self.root / definition["file"]
+            values = [[260, 250, 240], [270, 250, 260], [280, 270, 250]]
+            if name == "soil_organic_carbon":
+                values = [[150, 140, 130], [160, 150, 140], [170, 160, 150]]
+            self.write_raster(path, values)
+
+        result = self.lookup()
+
+        self.assertAlmostEqual(result["inputs"]["ph"], 6.8)
+        self.assertEqual(result["context_properties"]["clay_content"]["value"], 260)
+        self.assertEqual(result["context_properties"]["sand_content"]["units"], "g/kg")
+        self.assertEqual(result["context_properties"]["silt_content"]["value"], 260)
+        self.assertEqual(result["context_properties"]["soil_organic_carbon"]["value"], 15)
+        self.assertEqual(result["context_properties"]["soil_organic_carbon"]["units"], "g/kg")
 
 
 if __name__ == "__main__":

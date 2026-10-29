@@ -18,7 +18,8 @@ dashboard steps manually.
   FastAPI routes from serving the API.
 - The production frontend defaulted to `/api`, but its URL check rejected all
   relative URLs. The app now allows the intended same-origin `/api` value and
-  still rejects insecure or local absolute production API URLs.
+  rejects production API overrides that could send the frontend to an
+  independently deployed, stale backend.
 - Vercel's `VERCEL=1` environment variable selects `/api` route prefixes.
   Vercel sets this value automatically; do not define it yourself.
 - The existing root [app.py](./app.py) is a supported FastAPI entrypoint and
@@ -29,8 +30,10 @@ dashboard steps manually.
 - Backend auth reads `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` and fails
   closed if either is missing. The frontend separately reads the
   `VITE_SUPABASE_*` variables.
-- Production history requires PostgreSQL. SQLite is local-only and is not
-  durable or writable storage for Vercel Functions.
+- Persistent production history requires PostgreSQL. SQLite is local-only and
+  is not durable or writable storage for Vercel Functions. If PostgreSQL is
+  temporarily unreachable, the app logs the history outage and keeps model
+  predictions available; affected responses report that history was not saved.
 
 The project is prepared for this setup, but no Vercel deployment or live
 Supabase/database check has been performed.
@@ -54,8 +57,9 @@ Vercel installs Python dependencies from the root `requirements.txt`, which
 includes the fully pinned `requirements.lock.txt` dependency closure.
 
 The FastAPI application is deployed as one Vercel Function. Its maximum
-duration is configured to 60 seconds because weather/geocoding provider calls
-can take several seconds. The selected Vercel plan must permit this duration.
+duration is configured to 60 seconds. Soil and climate lookups read the
+bundled local datasets and make no runtime provider requests. The selected
+Vercel plan must permit this duration.
 Function memory is controlled by Vercel's project settings when Fluid Compute
 is enabled; monitor cold starts and memory after deployment and increase the
 setting if the account plan permits. As a starting point, choose 2 GB where
@@ -75,7 +79,7 @@ Never put server-only values into a `VITE_*` variable.
 | `APP_ENV` | Backend/server | Recommended | `production`; Vercel's `VERCEL=1` also enables production validation |
 | `VITE_SUPABASE_URL` | Frontend/build | Required for sign-in | Same Supabase project URL |
 | `VITE_SUPABASE_PUBLISHABLE_KEY` | Frontend/build | Required for sign-in | Same publishable/public key |
-| `VITE_API_BASE_URL` | Frontend/build | Recommended | `/api` (same Vercel origin; works for Production and Preview; this is also the production default) |
+| `VITE_API_BASE_URL` | Frontend/build | Optional | Leave unset or set to `/api`. Production rejects any other value so the frontend always calls the backend deployed with it. |
 | `VITE_APP_ORIGIN` | Frontend/build | Recommended | Stable production site origin, e.g. `https://YOUR_PROJECT.vercel.app`, no path |
 
 `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` are the exact backend variables
@@ -136,6 +140,64 @@ predictor and local lookups:
 - `backend/data/**` (about 8 MB, including soil rasters and climate JSON)
 - `frontend/dist/**` for the FastAPI SPA fallback
 
+The Expert Advisor and Field Toolkit use Esri World Imagery for satellite view
+and OpenStreetMap's standard tile service for normal road view. Browser tile
+requests require internet access; the app does not download tiles in bulk or
+offer offline map imagery. The map uses no provider API key and displays
+provider attribution. The bundled climate JSON contains NASA POWER/MERRA-2
+1991–2020 monthly normals. The Expert Advisor uses the selected location and
+month to prefill temperature, humidity, and rainfall estimates from the nearest
+installed grid cell. These are historical normals, not current weather or
+field readings, and the training CSV's weather aggregation is undocumented;
+the user must review and acknowledge them before prediction. Regenerating the
+climate file requires running the documented setup script with internet
+access; normal app runtime reads only local files.
+Supabase
+authentication and the configured PostgreSQL history database remain external
+service requirements and are not replaced by this data change.
+
+The normal map sends interactive tile requests to the OpenStreetMap Foundation
+standard tile service. Follow its
+[Tile Usage Policy](https://operations.osmfoundation.org/policies/tiles/):
+do not bulk-download tiles, prefetch areas, or use this service for offline
+maps. Heavy or commercial production traffic should use a tile provider whose
+plan explicitly covers the app's expected usage. Satellite tiles use the
+public Esri World Imagery map service and are subject to the
+[Esri Master License Agreement](https://www.esri.com/en-us/legal/terms/master-agreement).
+Esri's service metadata currently lists attribution to Esri, Vantor, Earthstar
+Geographics, and the GIS User Community. Both provider endpoints responded
+successfully during local verification; they do not provide an offline map or
+a production availability guarantee.
+
+The saved Random Forest pipeline expects the features in this exact order:
+`N`, `P`, `K`, `temperature`, `humidity`, `ph`, `rainfall`. The bundled
+`Crop_recommendation.csv` has 2,200 rows and 22 crop labels. Its column names
+and values do not document nutrient measurement units or weather observation
+periods; do not infer those definitions from the feature names. Historical
+climate normals may prefill the three weather fields as clearly labeled,
+acknowledged estimates; their equivalence to the training features is unknown.
+Context-only soil layers are not model inputs. No model retraining was
+performed.
+
+The Easy Farmer Guide's simple-question endpoint uses the bundled
+`backend/data/farmer_crop_rules.json` table from Tamil Nadu Agricultural
+University to rank relative water requirements and crop durations. It returns
+suggestions only when the answers include a supported water-availability
+factor or a low-water/short-duration goal. The district, soil category,
+planting season, market/profit goal, and most reported challenges are not
+scored; low rainfall is treated only as a qualitative low-water preference
+when no irrigation category is supplied, not as a measured rainfall
+observation. A reliable-irrigation category is not treated as a quantified
+water budget; it only selects a middle-relative-water ordering within the
+published table. The engine uses deterministic lexicographic ordering of
+published water totals and durations, with no fabricated suitability score.
+Heavy-rainfall/flood concerns suppress crop rankings because the source has
+no waterlogging-tolerance data. Pest/disease descriptions are recorded as
+context and are not diagnosed. This is a source-based comparison, not the
+Random Forest prediction or a field-specific suitability assessment. The
+table does not supply crop-specific sowing calendars, soil compatibility,
+fertilizer recommendations, or step-by-step crop guides.
+
 The listed local Windows `site-packages` directories for NumPy, SciPy, pandas,
 scikit-learn, rasterio, and the main runtime dependencies total roughly
 300 MB. This is only an estimate: Vercel builds Linux wheels, so the final
@@ -155,16 +217,19 @@ verified here.
 The function must use an external PostgreSQL database for history. Vercel's
 function filesystem must not be used for persistent history. Local soil and
 climate files are read-only and are bundled with the function; no local
-persistent disk is required. NASA POWER, Open-Meteo, and Nominatim lookups are
-request-time network operations with existing client timeouts and process-local
-caches. External provider latency can still approach or exceed browser
-timeouts.
+persistent disk is required. Map selection and soil/climate lookups use local
+data and do not make external weather, geocoding, or soil-provider requests.
+The map itself loads its selected imagery or road tiles directly from its
+attributed tile provider.
 
 On each new function instance, the current FastAPI lifespan calls
 `database.initialize()`, which creates the history tables and adds missing
-columns. Before the first live invocation, review that schema behavior and
-back up an existing database; do not connect an existing production database
-until that is acceptable.
+columns. A database connection failure during initialization is logged and
+does not prevent the model from loading; history operations report the
+unavailable database without discarding a generated recommendation. Before
+the first live invocation, review that schema behavior and back up an existing
+database; do not connect an existing production database until that is
+acceptable.
 
 ## Local verification
 
@@ -203,6 +268,11 @@ In local Vite development, `VITE_API_BASE_URL` can be omitted to use
 4. Trigger a Vercel deployment and review the build log for the Python 3.12
    runtime, dependency installation, static frontend build, function bundle
    size, and successful function packaging.
+   The deployed `/predict` page does not update when files are changed locally:
+   deploy the commit containing these changes, then confirm Vercel assigns the
+   resulting deployment to the intended Production domain. If the old NASA
+   POWER panel is still visible, inspect the deployed commit and project Root
+   Directory before changing source again.
 5. Verify the public health endpoint:
 
    ```text
@@ -221,6 +291,22 @@ These checks must be performed after you manually deploy. Passing local tests
 does not prove that the Vercel bundle or live Supabase/PostgreSQL credentials
 work.
 
+For a CLI deployment after linking the repository to the intended Vercel
+project, run from the repository root:
+
+```powershell
+npm --prefix frontend ci
+npm --prefix frontend test
+npm --prefix frontend run build
+npx vercel --prod
+```
+
+The CLI must be authenticated and linked to the correct Vercel project.
+Configure the required environment variables in the Vercel dashboard before
+deploying. These commands create a deployment but do not by themselves prove
+that it serves the intended production domain; verify the deployment and
+authenticated workflow afterward.
+
 ## Known limitations
 
 - Vercel builds and runs Python on Linux; the current local Python test
@@ -233,8 +319,10 @@ work.
   repeated cold starts can affect response time.
 - History depends on valid PostgreSQL connectivity and Supabase bearer-token
   validation. No live database or authentication test was performed.
-- Current-weather and reverse-geocoding provider availability, latency, and
-  usage limits remain external service constraints.
+- Current weather is not available from the offline installation. A live
+  weather source or regularly refreshed local feed would be required to provide
+  current observations; historical climate normals must not be presented as
+  current weather.
 
 ## Official Vercel references
 

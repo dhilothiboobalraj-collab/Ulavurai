@@ -30,8 +30,8 @@ const TEXT = {
     language: "மொழியை தேர்வு செய்யவும்",
     district: "உங்கள் மாவட்டம்?",
     districtHint: "உங்கள் மாவட்டத்தை பட்டியலில் தேர்வு செய்யுங்கள்.",
-    fieldLocation: "செயற்கைக்கோள் வரைபடத்தில் உங்கள் வயலைக் குறிக்கவும் (விருப்பம்)",
-    mapHint: "வரைபடத்தில் வயல் இடத்தைத் தேர்வு செய்யுங்கள். உள்ளூர் மண் தரவு இருந்தால் மட்டும் அதைப் பயன்படுத்தும்; செயற்கைக்கோள் படம் மண் ஊட்டச்சத்தை அளவிடாது.",
+    fieldLocation: "உள்ளூர் ஆயத்தொலைவு கட்டத்தில் உங்கள் வயலைக் குறிக்கவும் (விருப்பம்)",
+    mapHint: "செயற்கைக்கோள் அல்லது சாதாரண வரைபடத்தைத் தேர்ந்தெடுத்து உங்கள் வயலைத் தொடுங்கள். உள்ளூர் மண் தரவு இருந்தால் மட்டும் அதைப் பயன்படுத்தும்.",
     markedLocation: "குறிக்கப்பட்ட இடம்",
     useMyLocation: "என் இருப்பிடத்தைப் பயன்படுத்து",
     locationUnavailable: "உங்கள் இருப்பிடத்தைப் பெற முடியவில்லை.",
@@ -73,8 +73,8 @@ const TEXT = {
     language: "Choose your language",
     district: "Which district are you in?",
     districtHint: "Choose your district from the list.",
-    fieldLocation: "Mark your field on the satellite map (optional)",
-    mapHint: "Select your field location. Soil values are shown only when a local dataset covers the point; satellite imagery does not measure soil nutrients.",
+    fieldLocation: "Select your field coordinates (optional)",
+    mapHint: "Choose the satellite or normal map and click your field. Soil values are shown only when the installed local dataset covers the selected point.",
     markedLocation: "Marked location",
     useMyLocation: "Use my location",
     locationUnavailable: "Could not get your location.",
@@ -457,15 +457,15 @@ export default function FarmerGuide() {
               <h2>{text.fieldLocation}</h2>
               <p>{text.mapHint}</p>
             </div>
-            <Suspense fallback={<div className="toolkit-weather-map farmer-location-map" role="status">Loading satellite map…</div>}>
+            <Suspense fallback={<div className="interactive-map-status farmer-location-map" role="status">Loading interactive map…</div>}>
               <SatelliteLocationPicker
                 selectedLocation={selections.latitude !== null && selections.longitude !== null
                   ? { latitude: selections.latitude, longitude: selections.longitude }
                   : null}
                 onSelectLocation={selectFieldLocation}
                 label={language === "ta"
-                  ? "தமிழ்நாட்டின் செயற்கைக்கோள் வரைபடம். வயலைக் குறிக்கத் தட்டவும்."
-                  : "Satellite map of Tamil Nadu. Click to mark your field."}
+                  ? "வரைபடத்தில் தட்டி வயல் இடத்தைத் தேர்ந்தெடுக்கவும்."
+                  : "Interactive map. Click to select your field location."}
               />
             </Suspense>
             <div className="farmer-location-controls">

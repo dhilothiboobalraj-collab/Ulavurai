@@ -3,10 +3,12 @@ import { resolveApiBaseUrl } from "./apiBase.js";
 import { getApiRequestError, getApiResponseError } from "./apiErrors.js";
 import {
   validateGeospatialLookupResponse,
-  validateLocalGeospatialResponse,
+  validateLocalClimateResponse,
   validateLocationDataResponse,
 } from "./geospatialAutofill.js";
 import { validateFarmerCropRecommendationsResponse } from "./farmerCropRecommendations.js";
+import { validatePredictionResponse } from "./predictionResponse.js";
+import { readApiResponseBody } from "./apiResponse.js";
 
 const API_BASE = resolveApiBaseUrl(
   import.meta.env.VITE_API_BASE_URL,
@@ -45,7 +47,7 @@ async function request(path, options = {}) {
     }
   }
 
-  const body = await response.json().catch(() => ({}));
+  const body = await readApiResponseBody(response);
   if (!response.ok) {
     throw new Error(getApiResponseError(path, response.status, body));
   }
@@ -62,14 +64,19 @@ export const api = {
   preview: (values) =>
     request("/predict/preview", { method: "POST", body: JSON.stringify(values) }),
   predict: (values) =>
-    request("/predict", { method: "POST", body: JSON.stringify(values) }),
+    request("/predict", { method: "POST", body: JSON.stringify(values) })
+      .then(validatePredictionResponse),
   farmerPredict: (values) =>
     request("/farmer-guide/predict", { method: "POST", body: JSON.stringify(values) }),
   farmerCropRecommendations: (values, language = "en") =>
     request("/farmer-guide/crop-recommendations", {
       method: "POST",
       body: JSON.stringify(values),
-    }).then((response) => validateFarmerCropRecommendationsResponse(response, language)),
+    }).then((response) => validateFarmerCropRecommendationsResponse(
+      response,
+      language,
+      values,
+    )),
   farmerLocationEstimate: (latitude, longitude) => {
     const query = new URLSearchParams({
       latitude: String(latitude),
@@ -83,12 +90,6 @@ export const api = {
       body: JSON.stringify({ latitude, longitude }),
       timeoutMs: 15000,
     }).then(validateGeospatialLookupResponse),
-  geospatialLocalLookup: (latitude, longitude) =>
-    request("/geospatial/local-lookup", {
-      method: "POST",
-      body: JSON.stringify({ latitude, longitude }),
-      timeoutMs: 25000,
-    }).then(validateLocalGeospatialResponse),
   locationData: (latitude, longitude) => {
     const query = new URLSearchParams({
       latitude: String(latitude),
@@ -96,6 +97,14 @@ export const api = {
     });
     return request(`/location-data?${query}`, { timeoutMs: 20000 })
       .then(validateLocationDataResponse);
+  },
+  localClimateLookup: (latitude, longitude) => {
+    const query = new URLSearchParams({
+      latitude: String(latitude),
+      longitude: String(longitude),
+    });
+    return request(`/geospatial/climate-lookup?${query}`, { timeoutMs: 15000 })
+      .then(validateLocalClimateResponse);
   },
   history: () => request("/history"),
   clearHistory: () => request("/history", { method: "DELETE" }),

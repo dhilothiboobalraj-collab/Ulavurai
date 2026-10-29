@@ -11,28 +11,14 @@ test("production accepts an explicit same-origin API base", () => {
   assert.equal(resolveApiBaseUrl(" /api ", true), "/api");
 });
 
-test("production accepts an absolute HTTPS API URL", () => {
-  assert.equal(
-    resolveApiBaseUrl("https://api.example.com", true),
-    "https://api.example.com",
-  );
-});
-
-test("production rejects other relative API paths", () => {
+test("production rejects API URLs that bypass the backend deployed with the frontend", () => {
   assert.throws(
     () => resolveApiBaseUrl("/backend", true),
-    /must be \/api or an absolute HTTPS API URL/,
-  );
-});
-
-test("production rejects insecure and local absolute API URLs", () => {
-  assert.throws(
-    () => resolveApiBaseUrl("http://api.example.com", true),
-    /must be \/api or point to a public HTTPS backend/,
+    /Production uses the backend deployed with this frontend/,
   );
   assert.throws(
-    () => resolveApiBaseUrl("https://localhost:8000", true),
-    /must be \/api or point to a public HTTPS backend/,
+    () => resolveApiBaseUrl("https://old-api.example.com", true),
+    /Production uses the backend deployed with this frontend/,
   );
 });
 

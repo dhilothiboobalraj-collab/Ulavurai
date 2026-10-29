@@ -182,8 +182,8 @@ def _unavailable_result(latitude: float, longitude: float, status: str, message:
         "status": status,
         "latitude": latitude,
         "longitude": longitude,
-        "dataset_name": "NASA POWER meteorological monthly normals",
-        "source": "NASA POWER regional monthly service; meteorology from GMAO MERRA-2",
+        "dataset_name": "Local historical monthly climate normals",
+        "source": "Installed local climate dataset",
         "source_url": "https://power.larc.nasa.gov/",
         "license": "NASA Earth science data full-and-open data policy; attribution required.",
         "license_url": "https://www.earthdata.nasa.gov/engage/open-data-services-software-policies/data-information-guidance",
@@ -211,7 +211,7 @@ def lookup_local_climate(
             latitude,
             longitude,
             "not_installed",
-            "No NASA POWER climate dataset is installed; climate fields remain manual.",
+            "No local historical climate dataset is installed; climate fields remain manual.",
         )
 
     closest = min(
@@ -234,7 +234,7 @@ def lookup_local_climate(
             latitude,
             longitude,
             "outside_coverage",
-            "No installed NASA POWER grid cell is within the documented "
+            "No installed local climate grid cell is within the documented "
             f"{dataset['maximum_match_distance_m'] / 1000:g} km match limit.",
         )
 
